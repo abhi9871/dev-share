@@ -4,7 +4,8 @@ DevShare lets developers quickly send copied text, code snippets, logs, screensh
 to a configured destination (initially Discord) without repeatedly switching applications.
 
 > **Status: early development. DevShare is not usable yet.**
-> This repository currently contains the project tooling and the core payload model only.
+> This repository currently contains the project tooling and the core library (payload model and
+> configuration loading). There is no command or app to run yet.
 > The sections below describe what exists today; everything else is on the [roadmap](#roadmap).
 
 ## Why
@@ -25,17 +26,18 @@ make this a single, fast step:
 
 ## Roadmap
 
-| Status    | Feature                                                                    |
-| --------- | -------------------------------------------------------------------------- |
-| Available | Core payload model: text plus multiple attachments, validated as one share |
-| Available | Reading files from disk as attachments                                     |
-| Next      | Local destination configuration (secrets kept in environment variables)    |
-| Next      | Discord webhook transport                                                  |
-| Next      | `devshare` CLI for sharing text and files                                  |
-| Planned   | Desktop app (Electron): clipboard detection, preview, destination picker   |
-| Planned   | System tray and global shortcut (`Ctrl+Shift+A`)                           |
-| Planned   | Windows Explorer "Share with DevShare"                                     |
-| Planned   | Claude Code `/share` integration                                           |
+| Status    | Feature                                                                         |
+| --------- | ------------------------------------------------------------------------------- |
+| Available | Core payload model: text plus multiple attachments, validated as one share      |
+| Available | Reading files from disk as attachments                                          |
+| Available | Local config file loading, validation, and destination selection (core library) |
+| Next      | Webhook secrets read from environment variables                                 |
+| Next      | Discord webhook transport                                                       |
+| Next      | `devshare` CLI for sharing text and files                                       |
+| Planned   | Desktop app (Electron): clipboard detection, preview, destination picker        |
+| Planned   | System tray and global shortcut (`Ctrl+Shift+A`)                                |
+| Planned   | Windows Explorer "Share with DevShare"                                          |
+| Planned   | Claude Code `/share` integration                                                |
 
 ## Architecture
 
