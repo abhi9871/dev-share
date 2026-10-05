@@ -2,6 +2,7 @@ import { open } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
 
 import { DevShareError } from './errors.js';
+import { systemErrorCode } from './node-errors.js';
 import type { Attachment } from './payload.js';
 
 const DEFAULT_MEDIA_TYPE = 'application/octet-stream';
@@ -47,7 +48,7 @@ function toDevShareError(error: unknown, path: string): DevShareError {
   if (error instanceof DevShareError) {
     return error;
   }
-  switch (errorCode(error)) {
+  switch (systemErrorCode(error)) {
     case 'ENOENT':
       return new DevShareError('FILE_NOT_FOUND', `File not found: "${path}".`, { cause: error });
     case 'EISDIR':
@@ -60,10 +61,4 @@ function toDevShareError(error: unknown, path: string): DevShareError {
     default:
       return new DevShareError('FILE_NOT_READABLE', `Could not read "${path}".`, { cause: error });
   }
-}
-
-function errorCode(error: unknown): string | undefined {
-  return error instanceof Error && 'code' in error && typeof error.code === 'string'
-    ? error.code
-    : undefined;
 }
