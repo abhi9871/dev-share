@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    // Compile against the built @devshare/core output, not its source.
+    "customConditions": []
+  },
+  "include": ["src"]
+}

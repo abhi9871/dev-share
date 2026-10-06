@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 import { DevShareError } from './errors.js';
 import { systemErrorCode } from './node-errors.js';
+import { stripByteOrderMark } from './text.js';
 
 /** A named place to share to, such as a Discord channel. */
 export interface DestinationConfig {
@@ -19,15 +20,13 @@ export interface DevShareConfig {
 }
 
 const TOP_LEVEL_KEYS: ReadonlySet<string> = new Set(['defaultDestination', 'destinations']);
-const UTF8_BOM = '\uFEFF';
 
 /** Reads and validates a JSON config file. */
 export async function loadConfig(path: string): Promise<DevShareConfig> {
   const text = await readConfigFile(path);
   let json: unknown;
   try {
-    // Windows editors such as Notepad may save UTF-8 with a byte-order mark.
-    json = JSON.parse(text.startsWith(UTF8_BOM) ? text.slice(1) : text);
+    json = JSON.parse(stripByteOrderMark(text));
   } catch (error) {
     throw new DevShareError('INVALID_CONFIG', `Config file "${path}" is not valid JSON.`, {
       cause: error,

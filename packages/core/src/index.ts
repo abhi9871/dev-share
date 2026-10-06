@@ -7,6 +7,7 @@ export {
 } from './config.js';
 export { CONFIG_PATH_ENV, resolveConfigPath, type ConfigPathOptions } from './config-path.js';
 export { DevShareError, type DevShareErrorCode } from './errors.js';
+export { ENV_FILE_NAME, loadLocalSharingService, type LocalSetupOptions } from './local-setup.js';
 export {
   createSharePayload,
   type Attachment,
