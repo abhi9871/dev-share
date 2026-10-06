@@ -1,0 +1,13 @@
+// Renderer: browser environment only. No Node.js types, so renderer code cannot use Node APIs.
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": [],
+    "jsx": "react-jsx"
+  },
+  "include": [".", "../shared"]
+}

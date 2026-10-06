@@ -14,6 +14,11 @@ export {
   type SharePayload,
   type SharePayloadInput,
 } from './payload.js';
-export { SharingService, type ShareResult, type SharingServiceOptions } from './sharing-service.js';
+export {
+  SharingService,
+  type DestinationList,
+  type ShareResult,
+  type SharingServiceOptions,
+} from './sharing-service.js';
 export type { Environment, Transport, TransportFactory } from './transport.js';
 export { createBuiltInTransports } from './transports/index.js';

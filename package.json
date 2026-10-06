@@ -13,11 +13,14 @@
   },
   "workspaces": [
     "packages/core",
-    "packages/cli"
+    "packages/cli",
+    "packages/desktop"
   ],
   "scripts": {
     "build": "npm run build --workspaces",
     "devshare": "node packages/cli/dist/index.js",
+    "desktop": "npm run start -w @devshare/desktop",
+    "desktop:dev": "npm run dev -w @devshare/desktop",
     "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -31,6 +34,7 @@
     "@types/node": "^24.19.1",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.0",

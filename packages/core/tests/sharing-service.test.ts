@@ -91,3 +91,37 @@ describe('SharingService', () => {
     await expect(service.share(payload)).rejects.toBe(failure);
   });
 });
+
+describe('SharingService.listDestinations', () => {
+  function list(config: DevShareConfig) {
+    return new SharingService({ config, env: {}, transports: [] }).listDestinations();
+  }
+
+  it('lists names and types without exposing destination settings', () => {
+    const withSecretSetting: DestinationConfig = {
+      name: 'Bugs',
+      type: 'discord',
+      settings: { webhookEnv: 'DEVSHARE_BUGS_WEBHOOK' },
+    };
+
+    const result = list({ destinations: [general, withSecretSetting] });
+
+    expect(result.destinations).toEqual([
+      { name: 'General', type: 'fake' },
+      { name: 'Bugs', type: 'discord' },
+    ]);
+    expect(JSON.stringify(result)).not.toContain('webhookEnv');
+  });
+
+  it('reports the configured default using the destination name as configured', () => {
+    expect(list({ ...config, defaultDestination: 'backend' }).defaultDestination).toBe('Backend');
+  });
+
+  it('treats the only destination as the default', () => {
+    expect(list({ destinations: [backend] }).defaultDestination).toBe('Backend');
+  });
+
+  it('has no default when several destinations exist and none is configured', () => {
+    expect(list({ destinations: [general, backend] }).defaultDestination).toBeUndefined();
+  });
+});

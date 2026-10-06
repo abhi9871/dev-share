@@ -9,7 +9,8 @@ devshare --file screenshot.png "Login fails after token refresh, see screenshot"
 ```
 
 > **Status: early development.** The `devshare` command-line tool works today. The desktop app
-> (clipboard detection, preview, `Ctrl+Shift+A` shortcut) is planned; see the [roadmap](#roadmap).
+> is in development (see [Desktop app](#desktop-app)); clipboard detection, preview, and the
+> `Ctrl+Shift+A` shortcut are on the [roadmap](#roadmap).
 
 ## Why
 
@@ -220,9 +221,20 @@ With the planned desktop app, this becomes: copy, press `Ctrl+Shift+A`, pick _ba
 
 ## Desktop app
 
-Not available yet. The Electron desktop app (clipboard detection, preview, destination picker,
-tray icon, `Ctrl+Shift+A` shortcut) is the next phase; see the [roadmap](#roadmap). It will use the
-same core library, configuration, and destinations as the CLI.
+> **In development.** The desktop app currently opens a window that loads your configured
+> destinations into a destination picker. Composing and sending a share (message, files,
+> clipboard content) is being added next; until then, share with the CLI.
+
+The desktop app uses the same core library, `config.json`, and `.env` as the CLI; there is
+nothing extra to configure. From the repository root:
+
+```sh
+npm run desktop       # build and start the app
+npm run desktop:dev   # start with live reload while developing the UI
+```
+
+The first start downloads the Electron runtime (about 100 MB) into `node_modules`. If your
+organization blocks unsigned executables, the CLI remains fully usable.
 
 ## Security
 
@@ -235,6 +247,10 @@ same core library, configuration, and destinations as the CLI.
 - **No mentions.** Shared text cannot ping `@everyone`, roles, or users.
 - **No backend.** DevShare sends directly from your machine to the destination; nothing passes
   through a DevShare server.
+- **Locked-down desktop UI.** The desktop window runs with context isolation, sandboxing, and
+  no Node.js access, under a strict Content Security Policy; it cannot navigate away or open
+  other windows. It talks to the main process only through a small typed API, and never
+  receives webhook URLs or destination settings.
 - **Repository hygiene.** `.gitignore` excludes `.env` files. Never commit real webhook URLs,
   tokens, or other secrets in code, tests, issues, or examples.
 
@@ -252,12 +268,17 @@ packages/
   core/   @devshare/core: payload model, validation, configuration, sharing service,
           transports (Discord). No runtime dependencies.
   cli/    @devshare/cli: the devshare command. Parses arguments and calls core.
+  desktop/ @devshare/desktop: Electron app.
+          src/main/      privileged main process: window, security, IPC handlers (uses core)
+          src/preload/   exposes the typed window.devshare API to the renderer
+          src/shared/    IPC contract shared by main, preload, and renderer
+          src/renderer/  React UI; browser APIs only, no Node.js
 ```
 
 A share flows through the same pipeline regardless of interface:
 
 ```text
-CLI (or, later, desktop)
+CLI or desktop main process
   → createSharePayload()          validated text + attachments
   → SharingService.share()        resolves the destination from config.json
   → TransportFactory for its type validates settings, reads the secret
@@ -265,7 +286,7 @@ CLI (or, later, desktop)
 ```
 
 Interfaces never talk to Discord directly. New transports implement the `TransportFactory`
-interface in `packages/core/src/transports/` without changes to the CLI.
+interface in `packages/core/src/transports/` without changes to the CLI or desktop app.
 
 ## Development
 
@@ -274,17 +295,19 @@ npm install
 npm run build
 ```
 
-| Command                      | Purpose                                                |
-| ---------------------------- | ------------------------------------------------------ |
-| `npm run build`              | Compile all packages to `dist/` (core first, then CLI) |
-| `npm run devshare -- <args>` | Run the built CLI from the repository                  |
-| `npm run typecheck`          | Type-check all packages, tests, and tooling config     |
-| `npm run lint`               | Lint with ESLint (type-aware)                          |
-| `npm run format`             | Format with Prettier                                   |
-| `npm run format:check`       | Verify formatting without changing files               |
-| `npm test`                   | Run the test suite once                                |
-| `npm run test:watch`         | Run tests in watch mode                                |
-| `npm run check`              | Run format:check, lint, typecheck, test, and build     |
+| Command                      | Purpose                                            |
+| ---------------------------- | -------------------------------------------------- |
+| `npm run build`              | Build all packages (core, CLI, desktop)            |
+| `npm run devshare -- <args>` | Run the built CLI from the repository              |
+| `npm run desktop`            | Build and start the desktop app                    |
+| `npm run desktop:dev`        | Start the desktop app with live reload             |
+| `npm run typecheck`          | Type-check all packages, tests, and tooling config |
+| `npm run lint`               | Lint with ESLint (type-aware)                      |
+| `npm run format`             | Format with Prettier                               |
+| `npm run format:check`       | Verify formatting without changing files           |
+| `npm test`                   | Run the test suite once                            |
+| `npm run test:watch`         | Run tests in watch mode                            |
+| `npm run check`              | Run format:check, lint, typecheck, test, and build |
 
 Rebuild (`npm run build`) after changing source before using the `devshare` command.
 
@@ -292,7 +315,7 @@ Rebuild (`npm run build`) after changing source before using the `devshare` comm
 
 Tests use [Vitest](https://vitest.dev/) and live in `packages/*/tests/`. They cover behavior:
 payload validation, configuration, destination selection, the sharing service, the Discord
-transport, and CLI argument handling. Network access is always faked; tests never contact a real
+transport, CLI argument handling, and the desktop app's IPC handlers. Network access is always faked; tests never contact a real
 webhook. Tests and type-checking run against package sources directly, so no build is needed
 first.
 
@@ -300,16 +323,18 @@ CI runs `npm run check` on Windows with Node.js 22 and 24 for every pull request
 
 ## Roadmap
 
-| Status    | Feature                                                                  |
-| --------- | ------------------------------------------------------------------------ |
-| Available | Core library: payload model, configuration, sharing service              |
-| Available | Discord webhook transport                                                |
-| Available | `devshare` CLI for sharing text and files                                |
-| Planned   | Desktop app (Electron): clipboard detection, preview, destination picker |
-| Planned   | System tray, global shortcut (`Ctrl+Shift+A`), settings UI               |
-| Planned   | Windows Explorer "Share with DevShare"                                   |
-| Planned   | Claude Code `/share` integration                                         |
-| Planned   | Additional transports (for example Slack)                                |
+| Status    | Feature                                                         |
+| --------- | --------------------------------------------------------------- |
+| Available | Core library: payload model, configuration, sharing service     |
+| Available | Discord webhook transport                                       |
+| Available | `devshare` CLI for sharing text and files                       |
+| Available | Desktop app shell: secure window, typed IPC, destination picker |
+| Next      | Desktop: compose and share messages and files                   |
+| Next      | Desktop: clipboard detection (text, screenshots) with preview   |
+| Planned   | System tray, global shortcut (`Ctrl+Shift+A`), settings UI      |
+| Planned   | Windows Explorer "Share with DevShare"                          |
+| Planned   | Claude Code `/share` integration                                |
+| Planned   | Additional transports (for example Slack)                       |
 
 ## Contributing
 

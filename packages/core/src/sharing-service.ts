@@ -1,4 +1,4 @@
-import { resolveDestination, type DevShareConfig } from './config.js';
+import { defaultDestination, resolveDestination, type DevShareConfig } from './config.js';
 import { DevShareError } from './errors.js';
 import type { SharePayload } from './payload.js';
 import type { Environment, TransportFactory } from './transport.js';
@@ -8,6 +8,13 @@ export interface SharingServiceOptions {
   readonly env: Environment;
   /** Transports available for destinations, matched by destination `type`. */
   readonly transports: readonly TransportFactory[];
+}
+
+/** What interfaces may show about destinations: names and types, never settings or secrets. */
+export interface DestinationList {
+  readonly destinations: readonly { readonly name: string; readonly type: string }[];
+  /** Destination used when none is chosen, if there is one. */
+  readonly defaultDestination: string | undefined;
 }
 
 export interface ShareResult {
@@ -25,6 +32,13 @@ export class SharingService {
     this.#config = options.config;
     this.#env = options.env;
     this.#transports = new Map(options.transports.map((t) => [t.type.toLowerCase(), t]));
+  }
+
+  listDestinations(): DestinationList {
+    return {
+      destinations: this.#config.destinations.map(({ name, type }) => ({ name, type })),
+      defaultDestination: defaultDestination(this.#config)?.name,
+    };
   }
 
   /** Shares to the named destination, or to the default one when no name is given. */
