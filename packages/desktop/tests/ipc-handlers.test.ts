@@ -7,7 +7,9 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 import { AttachmentStore } from '../src/main/attachment-store.js';
+import { MAX_ATTACHMENT_BYTES } from '../src/main/files.js';
 import {
+  clipboardImageName,
   createIpcHandlers,
   MAX_TEXT_LENGTH,
   type IpcHandlerDependencies,
@@ -36,6 +38,8 @@ function createHandlers(overrides: Partial<IpcHandlerDependencies> = {}) {
     chooseFiles: () => Promise.resolve([]),
     readAttachment: (path) => Promise.resolve(file(path)),
     attachments: new AttachmentStore(),
+    readClipboard: () => Promise.resolve({ text: '' }),
+    now: () => new Date(2026, 9, 6, 15, 30, 12),
     ...overrides,
   });
 }
@@ -168,6 +172,120 @@ describe('pickFiles handler', () => {
       error: { code: 'FILE_NOT_FOUND', message: 'File not found: "missing.txt".' },
     });
     expect(add).not.toHaveBeenCalled();
+  });
+});
+
+describe('readClipboard handler', () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  const previewUrl = 'data:image/png;base64,iVBORw0KGgo=';
+
+  it('returns copied text verbatim', async () => {
+    const handlers = createHandlers({
+      readClipboard: () => Promise.resolve({ text: '  at main (app.ts:1)\n' }),
+    });
+
+    await expect(handlers.readClipboard(undefined)).resolves.toEqual({
+      ok: true,
+      value: { text: '  at main (app.ts:1)\n', image: undefined },
+    });
+  });
+
+  it('attaches a copied image as a PNG named after the time it was pasted', async () => {
+    const store = new AttachmentStore();
+    const handlers = createHandlers({
+      readClipboard: () => Promise.resolve({ text: '', image: { png, previewUrl } }),
+      attachments: store,
+    });
+
+    const { image } = unwrap(await handlers.readClipboard(undefined));
+
+    expect(image).toEqual({
+      id: expect.any(String) as string,
+      name: 'clipboard-2026-10-06-153012.png',
+      mediaType: 'image/png',
+      size: 4,
+      previewUrl,
+    });
+    expect(store.get(image?.id ?? '')).toEqual({
+      name: 'clipboard-2026-10-06-153012.png',
+      mediaType: 'image/png',
+      data: png,
+    });
+  });
+
+  it('returns both text and image when both were copied', async () => {
+    const handlers = createHandlers({
+      readClipboard: () => Promise.resolve({ text: 'see screenshot', image: { png, previewUrl } }),
+    });
+
+    const value = unwrap(await handlers.readClipboard(undefined));
+
+    expect(value.text).toBe('see screenshot');
+    expect(value.image?.mediaType).toBe('image/png');
+  });
+
+  it('refuses copied text too long for a message', async () => {
+    const handlers = createHandlers({
+      readClipboard: () => Promise.resolve({ text: 'x'.repeat(MAX_TEXT_LENGTH + 1) }),
+    });
+
+    await expect(handlers.readClipboard(undefined)).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'UNSUPPORTED_PAYLOAD' },
+    });
+  });
+
+  it('refuses a copied image over the size limit without attaching it', async () => {
+    const store = new AttachmentStore();
+    const add = vi.spyOn(store, 'add');
+    const handlers = createHandlers({
+      readClipboard: () =>
+        Promise.resolve({
+          text: '',
+          image: { png: new Uint8Array(MAX_ATTACHMENT_BYTES + 1), previewUrl },
+        }),
+      attachments: store,
+    });
+
+    await expect(handlers.readClipboard(undefined)).resolves.toEqual({
+      ok: false,
+      error: { code: 'INVALID_ATTACHMENT', message: 'The copied image is larger than 25 MB.' },
+    });
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it('lets a pasted image be shared like any other attachment', async () => {
+    const share = vi.fn(() => Promise.resolve({ destination: 'bugs' }));
+    const handlers = createHandlers({
+      readClipboard: () => Promise.resolve({ text: '', image: { png, previewUrl } }),
+      loadSharingService: () => Promise.resolve({ listDestinations: () => NO_DESTINATIONS, share }),
+    });
+
+    const { image } = unwrap(await handlers.readClipboard(undefined));
+    unwrap(
+      await handlers.share({
+        destination: 'bugs',
+        text: '',
+        attachmentIds: [image?.id ?? ''],
+      }),
+    );
+
+    expect(share).toHaveBeenCalledWith(
+      {
+        attachments: [
+          { name: 'clipboard-2026-10-06-153012.png', mediaType: 'image/png', data: png },
+        ],
+      },
+      'bugs',
+    );
+  });
+});
+
+describe('clipboardImageName', () => {
+  it('zero-pads every part of the local date and time', () => {
+    expect(clipboardImageName(new Date(2026, 0, 2, 3, 4, 5))).toBe(
+      'clipboard-2026-01-02-030405.png',
+    );
   });
 });
 

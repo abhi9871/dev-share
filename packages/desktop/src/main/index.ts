@@ -2,6 +2,7 @@ import { loadLocalSharingService } from '@devshare/core';
 import { app, dialog, session, type BrowserWindow } from 'electron';
 
 import { AttachmentStore } from './attachment-store.js';
+import { readSystemClipboard } from './clipboard.js';
 import { readAttachmentWithinLimit } from './files.js';
 import { registerIpcHandlers } from './ipc.js';
 import { createIpcHandlers } from './ipc-handlers.js';
@@ -28,6 +29,8 @@ async function start(): Promise<void> {
       },
       readAttachment: readAttachmentWithinLimit,
       attachments: new AttachmentStore(),
+      readClipboard: readSystemClipboard,
+      now: () => new Date(),
     }),
     // Only DevShare's own window, and only its top-level page, may call the API.
     (event) => event.sender === window.webContents && event.senderFrame === event.sender.mainFrame,
