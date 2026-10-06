@@ -4,6 +4,8 @@
     "lib": ["ES2023"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    // Resolve workspace packages to their TypeScript source during typecheck and tests.
+    "customConditions": ["@devshare/source"],
     "types": ["node"],
 
     "strict": true,

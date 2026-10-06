@@ -1,0 +1,21 @@
+{
+  "name": "@devshare/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The devshare command: share text and files to your configured destinations.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "devshare": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@devshare/core": "^0.1.0"
+  }
+}

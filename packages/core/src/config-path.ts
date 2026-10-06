@@ -1,11 +1,13 @@
 import { homedir } from 'node:os';
 import { posix, win32 } from 'node:path';
 
+import type { Environment } from './transport.js';
+
 /** Environment variable that overrides the config file location. */
 export const CONFIG_PATH_ENV = 'DEVSHARE_CONFIG';
 
 export interface ConfigPathOptions {
-  readonly env?: NodeJS.ProcessEnv;
+  readonly env?: Environment;
   readonly platform?: NodeJS.Platform;
   readonly homeDir?: string;
 }
