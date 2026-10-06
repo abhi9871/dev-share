@@ -13,6 +13,7 @@ function invoke<Method extends keyof DevShareApi>(
 const api: DevShareApi = {
   getDestinations: () => invoke('getDestinations'),
   pickFiles: () => invoke('pickFiles'),
+  readClipboard: () => invoke('readClipboard'),
   removeAttachment: (id) => invoke('removeAttachment', id),
   share: (request) => invoke('share', request),
 };

@@ -9,8 +9,8 @@ devshare --file screenshot.png "Login fails after token refresh, see screenshot"
 ```
 
 > **Status: early development.** The `devshare` command-line tool works today, and the desktop
-> app can share messages and files (see [Desktop app](#desktop-app)). Clipboard detection,
-> preview, and the `Ctrl+Shift+A` shortcut are on the [roadmap](#roadmap).
+> app can share messages, files, and clipboard content (see [Desktop app](#desktop-app)). The
+> system tray and `Ctrl+Shift+A` shortcut are on the [roadmap](#roadmap).
 
 ## Why
 
@@ -27,15 +27,16 @@ DevShare turns that into one step from wherever you already are:
 **Available now**
 
 - `devshare` CLI: share a message, one or more files, or both together as a single share
-- Desktop app: pick a destination, write a message, attach files, and share
+- Desktop app: opens with your copied text and image ready to share; add a message and files,
+  pick a destination, and share
 - Multiple named destinations (for example _general_, _backend_, _bugs_) with a default
 - Discord webhook delivery: text and all attachments arrive as one message
 - Secrets stay local: webhook URLs live in environment variables or a local `.env` file, never in
   the config file or this repository
 - Clear, specific error messages that never print webhook URLs
 
-**Planned** — see the [roadmap](#roadmap): desktop app with clipboard detection and preview,
-system tray, global shortcut, Explorer integration, Claude Code `/share`.
+**Planned** — see the [roadmap](#roadmap): system tray, global shortcut, settings UI, Explorer
+integration, Claude Code `/share`.
 
 ### Supported content
 
@@ -44,7 +45,7 @@ system tray, global shortcut, Explorer integration, Claude Code `/share`.
 | Text, errors, Claude responses, URLs      | `devshare "message"`           |
 | Any file: source code, logs, images, PDFs | `devshare --file path`         |
 | Several related items together            | Repeat `--file`, add a message |
-| Copied clipboard content, screenshots     | Planned (desktop app)          |
+| Copied clipboard content, screenshots     | Desktop app                    |
 
 Discord-specific behavior:
 
@@ -217,16 +218,21 @@ You hit an error in Claude Code: _"Authentication fails after token refresh."_
 2. Run `devshare -d backend --file screenshot.png "Authentication fails after token refresh"`.
 3. Your teammates see the message and screenshot together in the backend channel.
 
-With the planned desktop app, this becomes: copy, press `Ctrl+Shift+A`, pick _backend_, preview,
-**Share**.
+With the desktop app: copy, open DevShare, pick _backend_, check the preview, **Share**. The
+planned `Ctrl+Shift+A` shortcut will replace opening the app.
 
 ## Desktop app
 
-> **In development.** The desktop app can share a message and files to a destination you
-> pick. Clipboard detection (copied text and screenshots) is being added next.
+> **In development.** The desktop app shares messages, files, and clipboard content. The system
+> tray and `Ctrl+Shift+A` shortcut come next.
 
-Pick a destination, type or paste a message, add files with **Add files…**, and press
-**Share** (or `Ctrl+Enter` in the message box). Each file can be up to 25 MB; the destination
+When the app opens, whatever you copied is ready to share: copied text fills the message box,
+and a copied image or screenshot (for example from `Win+Shift+S`) is attached as a PNG with a
+preview. Nothing is sent until you press **Share**. **Paste from clipboard** adds the current
+clipboard content again, for example after copying something else.
+
+Pick a destination, edit the message, add files with **Add files…**, remove anything you do
+not want to send, and press **Share** (or `Ctrl+Enter` in the message box). Each file can be up to 25 MB; the destination
 may set a lower limit (Discord allows 10 attachments per message, and its upload size limit
 depends on the server).
 
@@ -323,7 +329,7 @@ Rebuild (`npm run build`) after changing source before using the `devshare` comm
 Tests use [Vitest](https://vitest.dev/) and live in `packages/*/tests/`. They cover behavior:
 payload validation, configuration, destination selection, the sharing service, the Discord
 transport, CLI argument handling, and the desktop app's main process (IPC request validation,
-attachment handling, and sharing). Network access is always faked; tests never contact a real
+attachment and clipboard handling, and sharing). Network access is always faked; tests never contact a real
 webhook. Tests and type-checking run against package sources directly, so no build is needed
 first.
 
@@ -338,7 +344,7 @@ CI runs `npm run check` on Windows with Node.js 22 and 24 for every pull request
 | Available | `devshare` CLI for sharing text and files                       |
 | Available | Desktop app shell: secure window, typed IPC, destination picker |
 | Available | Desktop: compose and share messages and files                   |
-| Next      | Desktop: clipboard detection (text, screenshots) with preview   |
+| Available | Desktop: clipboard detection (text, screenshots) with preview   |
 | Planned   | System tray, global shortcut (`Ctrl+Shift+A`), settings UI      |
 | Planned   | Windows Explorer "Share with DevShare"                          |
 | Planned   | Claude Code `/share` integration                                |

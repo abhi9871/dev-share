@@ -32,6 +32,16 @@ export interface AttachmentView {
   readonly mediaType: string;
   /** Size in bytes. */
   readonly size: number;
+  /** Small `data:` URL thumbnail, for images from the clipboard. */
+  readonly previewUrl?: string;
+}
+
+/** What was on the clipboard. Content is only shared when the user presses Share. */
+export interface ClipboardView {
+  /** Copied text, or an empty string if there is none. */
+  readonly text: string;
+  /** A copied image, already attached as a PNG file. */
+  readonly image: AttachmentView | undefined;
 }
 
 export interface ShareRequest {
@@ -51,6 +61,8 @@ export interface DevShareApi {
   getDestinations(): Promise<IpcResult<DestinationsView>>;
   /** Lets the user choose files to attach; resolves with none if they cancel. */
   pickFiles(): Promise<IpcResult<readonly AttachmentView[]>>;
+  /** Reads the clipboard's text and image; the image is attached for sharing. */
+  readClipboard(): Promise<IpcResult<ClipboardView>>;
   /** Discards an attached file that the user removed before sharing. */
   removeAttachment(id: string): Promise<IpcResult<void>>;
   /** Shares the message and attachments; shared attachments are then discarded. */
@@ -61,6 +73,7 @@ export interface DevShareApi {
 export const IPC_CHANNELS: { readonly [Method in keyof DevShareApi]: string } = {
   getDestinations: 'devshare:get-destinations',
   pickFiles: 'devshare:pick-files',
+  readClipboard: 'devshare:read-clipboard',
   removeAttachment: 'devshare:remove-attachment',
   share: 'devshare:share',
 };

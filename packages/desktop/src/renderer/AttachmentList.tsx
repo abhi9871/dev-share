@@ -14,21 +14,30 @@ export function AttachmentList({ attachments, disabled, onRemove }: AttachmentLi
     <ul className="attachments">
       {attachments.map((attachment) => (
         <li key={attachment.id}>
-          <span className="attachment-name" title={attachment.name}>
-            {attachment.name}
-          </span>
-          <span className="muted">{formatSize(attachment.size)}</span>
-          <button
-            type="button"
-            className="remove"
-            disabled={disabled}
-            aria-label={`Remove ${attachment.name}`}
-            onClick={() => {
-              onRemove(attachment.id);
-            }}
-          >
-            ×
-          </button>
+          <div className="attachment-row">
+            <span className="attachment-name" title={attachment.name}>
+              {attachment.name}
+            </span>
+            <span className="muted">{formatSize(attachment.size)}</span>
+            <button
+              type="button"
+              className="remove"
+              disabled={disabled}
+              aria-label={`Remove ${attachment.name}`}
+              onClick={() => {
+                onRemove(attachment.id);
+              }}
+            >
+              ×
+            </button>
+          </div>
+          {attachment.previewUrl && (
+            <img
+              className="preview"
+              src={attachment.previewUrl}
+              alt={`Preview of ${attachment.name}`}
+            />
+          )}
         </li>
       ))}
     </ul>

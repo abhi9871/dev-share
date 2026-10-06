@@ -13,6 +13,7 @@ import type {
   ShareRequest,
 } from '../shared/ipc.js';
 import type { AttachmentStore } from './attachment-store.js';
+import { MAX_ATTACHMENT_BYTES } from './files.js';
 
 /** Longest message accepted from the renderer; far beyond anything typed or pasted by hand. */
 export const MAX_TEXT_LENGTH = 1_000_000;
@@ -24,6 +25,20 @@ export interface IpcHandlerDependencies {
   readonly chooseFiles: () => Promise<readonly string[]>;
   readonly readAttachment: (path: string) => Promise<Attachment>;
   readonly attachments: AttachmentStore;
+  readonly readClipboard: () => Promise<ClipboardContent>;
+  /** Current time, used to name images pasted from the clipboard. */
+  readonly now: () => Date;
+}
+
+/** The system clipboard's contents, as read by the main process. */
+export interface ClipboardContent {
+  /** Copied text, or an empty string if there is none. */
+  readonly text: string;
+  readonly image?: {
+    readonly png: Uint8Array;
+    /** Small thumbnail of the image as a `data:` URL. */
+    readonly previewUrl: string;
+  };
 }
 
 /**
@@ -50,6 +65,36 @@ export function createIpcHandlers(deps: IpcHandlerDependencies): IpcHandlers {
         // Read every file before storing any, so a failure leaves nothing half-attached.
         const files = await Promise.all(paths.map((path) => deps.readAttachment(path)));
         return files.map((file) => toAttachmentView(deps.attachments.add(file), file));
+      }),
+
+    readClipboard: () =>
+      toResult(async () => {
+        const { text, image } = await deps.readClipboard();
+        if (text.length > MAX_TEXT_LENGTH) {
+          throw new DevShareError(
+            'UNSUPPORTED_PAYLOAD',
+            'The copied text is too long for a message; save it to a file and attach that instead.',
+          );
+        }
+        if (!image) {
+          return { text, image: undefined };
+        }
+        if (image.png.byteLength > MAX_ATTACHMENT_BYTES) {
+          throw new DevShareError(
+            'INVALID_ATTACHMENT',
+            `The copied image is larger than ${String(MAX_ATTACHMENT_BYTES / 1024 / 1024)} MB.`,
+          );
+        }
+        const attachment: Attachment = {
+          name: clipboardImageName(deps.now()),
+          mediaType: 'image/png',
+          data: image.png,
+        };
+        const id = deps.attachments.add(attachment);
+        return {
+          text,
+          image: { ...toAttachmentView(id, attachment), previewUrl: image.previewUrl },
+        };
       }),
 
     removeAttachment: (input) =>
@@ -99,6 +144,14 @@ function parseShareRequest(input: unknown): ShareRequest {
     throw new InvalidRequestError();
   }
   return { destination, text, attachmentIds };
+}
+
+/** Names a pasted image after the local time it was pasted, e.g. `clipboard-2026-10-06-153012.png`. */
+export function clipboardImageName(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const day = `${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const time = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+  return `clipboard-${day}-${time}.png`;
 }
 
 function toAttachmentView(id: string, attachment: Attachment): AttachmentView {

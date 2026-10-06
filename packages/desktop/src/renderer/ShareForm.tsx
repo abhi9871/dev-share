@@ -1,6 +1,6 @@
-import { useState, type KeyboardEvent, type SubmitEvent } from 'react';
+import { useCallback, useEffect, useState, type KeyboardEvent, type SubmitEvent } from 'react';
 
-import type { AttachmentView, DestinationsView, IpcError } from '../shared/ipc.js';
+import type { AttachmentView, ClipboardView, DestinationsView, IpcError } from '../shared/ipc.js';
 import { AttachmentList } from './AttachmentList.js';
 import { DestinationPicker } from './DestinationPicker.js';
 
@@ -8,6 +8,7 @@ type ShareStatus =
   | { readonly kind: 'idle' }
   | { readonly kind: 'sending' }
   | { readonly kind: 'sent'; readonly destination: string }
+  | { readonly kind: 'info'; readonly message: string }
   | { readonly kind: 'error'; readonly error: IpcError };
 
 interface ShareFormProps {
@@ -24,6 +25,52 @@ export function ShareForm({ destinations }: ShareFormProps) {
   const sending = status.kind === 'sending';
   const hasContent = text.trim() !== '' || attachments.length > 0;
   const canShare = !sending && destination !== '' && hasContent;
+
+  /** Adds clipboard content to the share; text goes after any message already typed. */
+  const addClipboardContent = useCallback((clipboard: ClipboardView) => {
+    if (clipboard.text !== '') {
+      setText((current) => (current === '' ? clipboard.text : `${current}\n${clipboard.text}`));
+    }
+    const { image } = clipboard;
+    if (image) {
+      setAttachments((current) => [...current, image]);
+    }
+  }, []);
+
+  // Start with whatever was copied, so the usual flow is: copy, open DevShare, press Share.
+  useEffect(() => {
+    let active = true;
+    void window.devshare.readClipboard().then((result) => {
+      if (!active) {
+        // The form went away before the clipboard was read; release the attached image.
+        if (result.ok && result.value.image) {
+          void window.devshare.removeAttachment(result.value.image.id);
+        }
+        return;
+      }
+      if (!result.ok) {
+        setStatus({ kind: 'error', error: result.error });
+      } else if (!isEmpty(result.value)) {
+        addClipboardContent(result.value);
+        setStatus({ kind: 'info', message: 'Loaded from your clipboard.' });
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [addClipboardContent]);
+
+  async function pasteFromClipboard() {
+    const result = await window.devshare.readClipboard();
+    if (!result.ok) {
+      setStatus({ kind: 'error', error: result.error });
+    } else if (isEmpty(result.value)) {
+      setStatus({ kind: 'info', message: 'The clipboard has no text or image.' });
+    } else {
+      addClipboardContent(result.value);
+      setStatus({ kind: 'idle' });
+    }
+  }
 
   async function addFiles() {
     setPicking(true);
@@ -97,15 +144,26 @@ export function ShareForm({ destinations }: ShareFormProps) {
       <div className="field">
         <div className="field-header">
           <span className="field-label">Files</span>
-          <button
-            type="button"
-            disabled={picking || sending}
-            onClick={() => {
-              void addFiles();
-            }}
-          >
-            Add files…
-          </button>
+          <div className="buttons">
+            <button
+              type="button"
+              disabled={sending}
+              onClick={() => {
+                void pasteFromClipboard();
+              }}
+            >
+              Paste from clipboard
+            </button>
+            <button
+              type="button"
+              disabled={picking || sending}
+              onClick={() => {
+                void addFiles();
+              }}
+            >
+              Add files…
+            </button>
+          </div>
         </div>
         <AttachmentList attachments={attachments} disabled={sending} onRemove={removeAttachment} />
       </div>
@@ -125,6 +183,12 @@ function ShareStatusMessage({ status }: { readonly status: ShareStatus }) {
     case 'idle':
     case 'sending':
       return <p className="status muted">Ctrl+Enter to share</p>;
+    case 'info':
+      return (
+        <p className="status muted" role="status">
+          {status.message}
+        </p>
+      );
     case 'sent':
       return (
         <p className="status success" role="status">
@@ -138,4 +202,8 @@ function ShareStatusMessage({ status }: { readonly status: ShareStatus }) {
         </p>
       );
   }
+}
+
+function isEmpty(clipboard: ClipboardView): boolean {
+  return clipboard.text === '' && clipboard.image === undefined;
 }
