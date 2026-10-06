@@ -9,8 +9,9 @@ devshare --file screenshot.png "Login fails after token refresh, see screenshot"
 ```
 
 > **Status: early development.** The `devshare` command-line tool works today, and the desktop
-> app can share messages, files, and clipboard content (see [Desktop app](#desktop-app)). The
-> system tray and `Ctrl+Shift+A` shortcut are on the [roadmap](#roadmap).
+> app can share messages, files, and clipboard content from the system tray (see
+> [Desktop app](#desktop-app)). The `Ctrl+Shift+A` shortcut and a settings screen are on the
+> [roadmap](#roadmap).
 
 ## Why
 
@@ -35,8 +36,8 @@ DevShare turns that into one step from wherever you already are:
   the config file or this repository
 - Clear, specific error messages that never print webhook URLs
 
-**Planned** — see the [roadmap](#roadmap): system tray, global shortcut, settings UI, Explorer
-integration, Claude Code `/share`.
+**Planned** — see the [roadmap](#roadmap): global shortcut, settings UI, Explorer integration,
+Claude Code `/share`.
 
 ### Supported content
 
@@ -223,8 +224,8 @@ planned `Ctrl+Shift+A` shortcut will replace opening the app.
 
 ## Desktop app
 
-> **In development.** The desktop app shares messages, files, and clipboard content. The system
-> tray and `Ctrl+Shift+A` shortcut come next.
+> **In development.** The desktop app shares messages, files, and clipboard content. The
+> `Ctrl+Shift+A` shortcut and a settings screen come next.
 
 When the app opens, whatever you copied is ready to share: copied text fills the message box,
 and a copied image or screenshot (for example from `Win+Shift+S`) is attached as a PNG with a
@@ -235,6 +236,11 @@ Pick a destination, edit the message, add files with **Add files…**, remove an
 not want to send, and press **Share** (or `Ctrl+Enter` in the message box). Each file can be up to 25 MB; the destination
 may set a lower limit (Discord allows 10 attachments per message, and its upload size limit
 depends on the server).
+
+DevShare keeps running in the system tray: closing the window hides it, and clicking the tray
+icon (or choosing **Open DevShare** from its menu) brings it back with your draft intact.
+Starting DevShare again while it is running also brings up the existing window. To exit,
+choose **Quit DevShare** from the tray icon's menu.
 
 The desktop app uses the same core library, `config.json`, and `.env` as the CLI; there is
 nothing extra to configure. From the repository root:
@@ -345,7 +351,9 @@ CI runs `npm run check` on Windows with Node.js 22 and 24 for every pull request
 | Available | Desktop app shell: secure window, typed IPC, destination picker |
 | Available | Desktop: compose and share messages and files                   |
 | Available | Desktop: clipboard detection (text, screenshots) with preview   |
-| Planned   | System tray, global shortcut (`Ctrl+Shift+A`), settings UI      |
+| Available | Desktop: runs in the system tray                                |
+| Next      | Desktop: global shortcut (`Ctrl+Shift+A`)                       |
+| Next      | Desktop: settings (destinations, webhooks, preferences)         |
 | Planned   | Windows Explorer "Share with DevShare"                          |
 | Planned   | Claude Code `/share` integration                                |
 | Planned   | Additional transports (for example Slack)                       |

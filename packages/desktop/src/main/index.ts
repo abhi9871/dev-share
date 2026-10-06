@@ -1,15 +1,19 @@
 import { loadLocalSharingService } from '@devshare/core';
-import { app, dialog, session, type BrowserWindow } from 'electron';
+import { app, dialog, session, type BrowserWindow, type Tray } from 'electron';
 
 import { AttachmentStore } from './attachment-store.js';
+import { hideOnClose, showWindow } from './background.js';
 import { readSystemClipboard } from './clipboard.js';
 import { readAttachmentWithinLimit } from './files.js';
 import { registerIpcHandlers } from './ipc.js';
 import { createIpcHandlers } from './ipc-handlers.js';
 import { denyPermissionRequests, hardenWebContents } from './security.js';
+import { createTray, showStillRunningNotice } from './tray.js';
 import { createMainWindow, loadRenderer } from './window.js';
 
 let mainWindow: BrowserWindow | undefined;
+// Held for the app's lifetime; a tray that is garbage-collected disappears.
+let tray: Tray | undefined;
 
 async function start(): Promise<void> {
   await app.whenReady();
@@ -17,6 +21,21 @@ async function start(): Promise<void> {
 
   const window = createMainWindow();
   mainWindow = window;
+  const appTray = createTray({
+    open: () => {
+      showWindow(window);
+    },
+    quit: () => {
+      app.quit();
+    },
+  });
+  tray = appTray;
+  app.on(
+    'before-quit',
+    hideOnClose(window, () => {
+      showStillRunningNotice(appTray);
+    }),
+  );
   registerIpcHandlers(
     createIpcHandlers({
       loadSharingService: () => loadLocalSharingService(),
@@ -38,20 +57,21 @@ async function start(): Promise<void> {
   await loadRenderer(window);
 }
 
-function focusMainWindow(): void {
-  if (mainWindow?.isMinimized()) {
-    mainWindow.restore();
+function showMainWindow(): void {
+  if (mainWindow) {
+    showWindow(mainWindow);
   }
-  mainWindow?.focus();
 }
 
 if (app.requestSingleInstanceLock()) {
   app.on('web-contents-created', (_event, contents) => {
     hardenWebContents(contents);
   });
-  app.on('second-instance', focusMainWindow);
-  app.on('window-all-closed', () => {
-    app.quit();
+  // Starting DevShare again while it runs in the background brings up the existing window.
+  app.on('second-instance', showMainWindow);
+  app.on('will-quit', () => {
+    // Remove the icon right away; Windows can otherwise leave a stale one in the tray.
+    tray?.destroy();
   });
 
   start().catch((error: unknown) => {
@@ -62,6 +82,6 @@ if (app.requestSingleInstanceLock()) {
     app.exit(1);
   });
 } else {
-  // Another DevShare window is already open; it is focused via 'second-instance'.
+  // DevShare is already running; its window is shown via 'second-instance'.
   app.quit();
 }
