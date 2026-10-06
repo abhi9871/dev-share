@@ -240,6 +240,9 @@ same core library, configuration, and destinations as the CLI.
 
 If a webhook URL is ever exposed, delete the webhook in Discord and create a new one.
 
+To report a security vulnerability in DevShare, see [SECURITY.md](SECURITY.md); please do not
+open a public issue.
+
 ## Architecture
 
 DevShare is an npm workspace with one source of truth for sharing logic:
