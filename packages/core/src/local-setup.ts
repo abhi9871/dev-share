@@ -8,7 +8,7 @@ import type { Environment, TransportFactory } from './transport.js';
 import { createBuiltInTransports } from './transports/index.js';
 
 /** Secrets file read from the same folder as the config file. */
-export const ENV_FILE_NAME = '.env';
+const ENV_FILE_NAME = '.env';
 
 export interface LocalSetupOptions {
   /** Process environment; defaults to `process.env`. Its values override the `.env` file. */
