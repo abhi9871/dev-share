@@ -4,6 +4,7 @@
   font-size: 14px;
   --accent: #5865f2;
   --error: #d93025;
+  --success: #188038;
   --muted: #6b6f76;
   --border: color-mix(in srgb, currentColor 20%, transparent);
 }
@@ -35,16 +36,103 @@ h1 {
   font-weight: 600;
 }
 
-select {
+select,
+textarea,
+button {
   font: inherit;
   padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
 }
 
-select:focus-visible {
+textarea {
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  resize: vertical;
+}
+
+button {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+.share-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attachments li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.attachment-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button.remove {
+  padding: 0 8px;
+  border: none;
+  background: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.status {
+  margin: 0;
+}
+
+.success {
+  color: var(--success);
+}
+
+.error-text {
+  color: var(--error);
 }
 
 .muted {

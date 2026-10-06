@@ -12,6 +12,9 @@ function invoke<Method extends keyof DevShareApi>(
 // Expose only DevShare's typed API; the renderer gets no direct access to Electron or Node.
 const api: DevShareApi = {
   getDestinations: () => invoke('getDestinations'),
+  pickFiles: () => invoke('pickFiles'),
+  removeAttachment: (id) => invoke('removeAttachment', id),
+  share: (request) => invoke('share', request),
 };
 
 contextBridge.exposeInMainWorld('devshare', api);

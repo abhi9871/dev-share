@@ -1,6 +1,8 @@
 import { loadLocalSharingService } from '@devshare/core';
 import { app, dialog, session, type BrowserWindow } from 'electron';
 
+import { AttachmentStore } from './attachment-store.js';
+import { readAttachmentWithinLimit } from './files.js';
 import { registerIpcHandlers } from './ipc.js';
 import { createIpcHandlers } from './ipc-handlers.js';
 import { denyPermissionRequests, hardenWebContents } from './security.js';
@@ -15,7 +17,18 @@ async function start(): Promise<void> {
   const window = createMainWindow();
   mainWindow = window;
   registerIpcHandlers(
-    createIpcHandlers({ loadSharingService: () => loadLocalSharingService() }),
+    createIpcHandlers({
+      loadSharingService: () => loadLocalSharingService(),
+      chooseFiles: async () => {
+        const result = await dialog.showOpenDialog(window, {
+          title: 'Attach files',
+          properties: ['openFile', 'multiSelections'],
+        });
+        return result.canceled ? [] : result.filePaths;
+      },
+      readAttachment: readAttachmentWithinLimit,
+      attachments: new AttachmentStore(),
+    }),
     // Only DevShare's own window, and only its top-level page, may call the API.
     (event) => event.sender === window.webContents && event.senderFrame === event.sender.mainFrame,
   );
