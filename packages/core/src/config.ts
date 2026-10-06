@@ -82,17 +82,12 @@ export function parseConfig(value: unknown, source: string): DevShareConfig {
 }
 
 /**
- * Picks the destination to share to: the named one if given, otherwise the configured
- * default, otherwise the only destination. Names are matched case-insensitively.
+ * Picks the destination to share to: the named one if given, otherwise the default (see
+ * `defaultDestination`). Names are matched case-insensitively.
  */
 export function resolveDestination(config: DevShareConfig, name?: string): DestinationConfig {
-  const wanted = name ?? config.defaultDestination;
-  const [onlyDestination] = config.destinations;
-
+  const wanted = name ?? defaultDestination(config)?.name;
   if (wanted === undefined) {
-    if (onlyDestination && config.destinations.length === 1) {
-      return onlyDestination;
-    }
     throw new DevShareError(
       'DESTINATION_REQUIRED',
       `Choose a destination (${destinationNames(config)}) or set "defaultDestination" in your config.`,
@@ -107,6 +102,15 @@ export function resolveDestination(config: DevShareConfig, name?: string): Desti
     );
   }
   return destination;
+}
+
+/** The destination used when none is named: the configured default, or the only destination. */
+export function defaultDestination(config: DevShareConfig): DestinationConfig | undefined {
+  if (config.defaultDestination !== undefined) {
+    return findDestination(config.destinations, config.defaultDestination);
+  }
+  const [onlyDestination, ...others] = config.destinations;
+  return others.length === 0 ? onlyDestination : undefined;
 }
 
 async function readConfigFile(path: string): Promise<string> {
