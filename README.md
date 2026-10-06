@@ -8,9 +8,9 @@ devshare --file screenshot.png "Login fails after token refresh, see screenshot"
 # Shared message and 1 file to backend.
 ```
 
-> **Status: early development.** The `devshare` command-line tool works today. The desktop app
-> is in development (see [Desktop app](#desktop-app)); clipboard detection, preview, and the
-> `Ctrl+Shift+A` shortcut are on the [roadmap](#roadmap).
+> **Status: early development.** The `devshare` command-line tool works today, and the desktop
+> app can share messages and files (see [Desktop app](#desktop-app)). Clipboard detection,
+> preview, and the `Ctrl+Shift+A` shortcut are on the [roadmap](#roadmap).
 
 ## Why
 
@@ -27,6 +27,7 @@ DevShare turns that into one step from wherever you already are:
 **Available now**
 
 - `devshare` CLI: share a message, one or more files, or both together as a single share
+- Desktop app: pick a destination, write a message, attach files, and share
 - Multiple named destinations (for example _general_, _backend_, _bugs_) with a default
 - Discord webhook delivery: text and all attachments arrive as one message
 - Secrets stay local: webhook URLs live in environment variables or a local `.env` file, never in
@@ -221,9 +222,13 @@ With the planned desktop app, this becomes: copy, press `Ctrl+Shift+A`, pick _ba
 
 ## Desktop app
 
-> **In development.** The desktop app currently opens a window that loads your configured
-> destinations into a destination picker. Composing and sending a share (message, files,
-> clipboard content) is being added next; until then, share with the CLI.
+> **In development.** The desktop app can share a message and files to a destination you
+> pick. Clipboard detection (copied text and screenshots) is being added next.
+
+Pick a destination, type or paste a message, add files with **Add files…**, and press
+**Share** (or `Ctrl+Enter` in the message box). Each file can be up to 25 MB; the destination
+may set a lower limit (Discord allows 10 attachments per message, and its upload size limit
+depends on the server).
 
 The desktop app uses the same core library, `config.json`, and `.env` as the CLI; there is
 nothing extra to configure. From the repository root:
@@ -250,7 +255,9 @@ organization blocks unsigned executables, the CLI remains fully usable.
 - **Locked-down desktop UI.** The desktop window runs with context isolation, sandboxing, and
   no Node.js access, under a strict Content Security Policy; it cannot navigate away or open
   other windows. It talks to the main process only through a small typed API, and never
-  receives webhook URLs or destination settings.
+  receives webhook URLs or destination settings. Files are chosen in a native dialog and read
+  by the main process; the window refers to them only by opaque IDs, so it can never ask
+  DevShare to read a path of its choosing.
 - **Repository hygiene.** `.gitignore` excludes `.env` files. Never commit real webhook URLs,
   tokens, or other secrets in code, tests, issues, or examples.
 
@@ -315,7 +322,8 @@ Rebuild (`npm run build`) after changing source before using the `devshare` comm
 
 Tests use [Vitest](https://vitest.dev/) and live in `packages/*/tests/`. They cover behavior:
 payload validation, configuration, destination selection, the sharing service, the Discord
-transport, CLI argument handling, and the desktop app's IPC handlers. Network access is always faked; tests never contact a real
+transport, CLI argument handling, and the desktop app's main process (IPC request validation,
+attachment handling, and sharing). Network access is always faked; tests never contact a real
 webhook. Tests and type-checking run against package sources directly, so no build is needed
 first.
 
@@ -329,7 +337,7 @@ CI runs `npm run check` on Windows with Node.js 22 and 24 for every pull request
 | Available | Discord webhook transport                                       |
 | Available | `devshare` CLI for sharing text and files                       |
 | Available | Desktop app shell: secure window, typed IPC, destination picker |
-| Next      | Desktop: compose and share messages and files                   |
+| Available | Desktop: compose and share messages and files                   |
 | Next      | Desktop: clipboard detection (text, screenshots) with preview   |
 | Planned   | System tray, global shortcut (`Ctrl+Shift+A`), settings UI      |
 | Planned   | Windows Explorer "Share with DevShare"                          |

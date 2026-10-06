@@ -1,11 +1,8 @@
-import { useState } from 'react';
-
-import { DestinationPicker } from './DestinationPicker.js';
+import { ShareForm } from './ShareForm.js';
 import { useDestinations } from './useDestinations.js';
 
 export function App() {
   const destinations = useDestinations();
-  const [chosen, setChosen] = useState<string | undefined>();
 
   return (
     <main className="app">
@@ -19,13 +16,7 @@ export function App() {
           )}
         </div>
       )}
-      {destinations.status === 'ready' && (
-        <DestinationPicker
-          destinations={destinations.value.destinations}
-          value={chosen ?? destinations.value.defaultDestination ?? ''}
-          onChange={setChosen}
-        />
-      )}
+      {destinations.status === 'ready' && <ShareForm destinations={destinations.value} />}
     </main>
   );
 }
