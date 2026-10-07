@@ -210,6 +210,8 @@ Usage: devshare [options] [message...]
 Options:
   -f, --file <path>          Attach a file (repeat for multiple files)
   -d, --destination <name>   Destination to share to (default: from your config)
+      --stdin                Read the message from standard input instead
+  -l, --list                 List the configured destinations
   -h, --help                 Show this help
   -v, --version              Show the version
 ```
@@ -231,10 +233,25 @@ devshare --file auth.ts --file publicClient.ts "Please review these"
 
 # Share to a specific destination
 devshare --destination backend "Please test this"
+
+# Share the output of a command (long output arrives as message.txt)
+npm test 2>&1 | devshare --destination bugs --stdin
+
+# Share a file's contents as the message, with a screenshot attached
+devshare --stdin --file screenshot.png < notes.md
+
+# See which destinations you can use
+devshare --list
 ```
 
 Quote messages that contain shell special characters. Unquoted words are joined with spaces, so
-`devshare please check this` also works.
+`devshare please check this` also works. `--stdin` sends the text exactly as it is, with no
+quoting needed, which suits code and logs.
+
+In Windows PowerShell 5.1 (not PowerShell 7), text piped to other programs loses non-English
+characters unless you first run `$OutputEncoding = [System.Text.UTF8Encoding]::new()`.
+
+`devshare --list` prints one destination per line and marks the default with `(default)`.
 
 ### Exit codes
 

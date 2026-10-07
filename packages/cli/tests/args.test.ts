@@ -7,6 +7,7 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['Please check this authentication issue'])).toEqual({
       kind: 'share',
       text: 'Please check this authentication issue',
+      stdin: false,
       files: [],
       destination: undefined,
     });
@@ -20,6 +21,7 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['--file', 'publicClient.ts'])).toEqual({
       kind: 'share',
       text: undefined,
+      stdin: false,
       files: ['publicClient.ts'],
       destination: undefined,
     });
@@ -47,8 +49,20 @@ describe('parseCliArgs', () => {
     [['-h', 'ignored message'], 'help'],
     [['--version'], 'version'],
     [['-v'], 'version'],
+    [['--list'], 'list'],
+    [['-l'], 'list'],
   ])('parses %j as %s', (argv, kind) => {
     expect(parseCliArgs(argv)).toEqual({ kind });
+  });
+
+  it('parses --stdin with a destination and files', () => {
+    expect(parseCliArgs(['--stdin', '-d', 'bugs', '--file', 'test.log'])).toEqual({
+      kind: 'share',
+      text: undefined,
+      stdin: true,
+      files: ['test.log'],
+      destination: 'bugs',
+    });
   });
 
   it.each([
@@ -57,6 +71,10 @@ describe('parseCliArgs', () => {
     ['an empty --file path', ['--file', '']],
     ['--destination without a name', ['--destination']],
     ['an empty --destination', ['--destination', ' ']],
+    ['--stdin together with a message', ['--stdin', 'hello']],
+    ['--list together with a message', ['--list', 'hello']],
+    ['--list together with --destination', ['--list', '-d', 'bugs']],
+    ['--list together with --stdin', ['--list', '--stdin']],
   ])('rejects %s', (_label, argv) => {
     expect(() => parseCliArgs(argv)).toThrow(UsageError);
   });

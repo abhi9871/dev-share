@@ -1,6 +1,7 @@
 import {
   createSharePayload,
   DevShareError,
+  stripByteOrderMark,
   type Attachment,
   type SharePayload,
   type SharingService,
@@ -20,7 +21,9 @@ export interface CliDependencies {
   readonly writeOut: (text: string) => void;
   readonly writeError: (text: string) => void;
   readonly readAttachment: (path: string) => Promise<Attachment>;
-  readonly loadSharingService: () => Promise<Pick<SharingService, 'share'>>;
+  /** Reads all of standard input as text, for `--stdin`. */
+  readonly readStdin: () => Promise<string>;
+  readonly loadSharingService: () => Promise<Pick<SharingService, 'share' | 'listDestinations'>>;
 }
 
 /** Runs the CLI and returns the process exit code. */
@@ -34,11 +37,23 @@ export async function runCli(argv: readonly string[], deps: CliDependencies): Pr
       case 'version':
         deps.writeOut(`${deps.version}\n`);
         return EXIT_SUCCESS;
+      case 'list': {
+        // One destination per line, so scripts (and Claude Code's /share) can read the names.
+        const { destinations, defaultDestination } = (
+          await deps.loadSharingService()
+        ).listDestinations();
+        const lines = destinations.map(({ name }) =>
+          name === defaultDestination ? `${name} (default)` : name,
+        );
+        deps.writeOut(`${lines.join('\n')}\n`);
+        return EXIT_SUCCESS;
+      }
       case 'share': {
+        const text = command.stdin ? stripByteOrderMark(await deps.readStdin()) : command.text;
         const attachments = await Promise.all(
           command.files.map((file) => deps.readAttachment(file)),
         );
-        const payload = createSharePayload({ text: command.text, attachments });
+        const payload = createSharePayload({ text, attachments });
         const service = await deps.loadSharingService();
         const result = await service.share(payload, command.destination);
         deps.writeOut(`Shared ${describePayload(payload)} to ${result.destination}.\n`);
