@@ -23,6 +23,9 @@ function subscribe(channel: string, listener: () => void): () => void {
 // Expose only DevShare's typed API; the renderer gets no direct access to Electron or Node.
 const api: DevShareApi & DevShareEvents = {
   getDestinations: () => invoke('getDestinations'),
+  getLaunchState: () => invoke('getLaunchState'),
+  getPreferences: () => invoke('getPreferences'),
+  updatePreferences: (update) => invoke('updatePreferences', update),
   pickFiles: () => invoke('pickFiles'),
   readClipboard: () => invoke('readClipboard'),
   removeAttachment: (id) => invoke('removeAttachment', id),

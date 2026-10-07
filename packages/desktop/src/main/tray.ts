@@ -7,10 +7,15 @@ import { trayMenuTemplate, type TrayActions } from './background.js';
 /** `shortcut` is the label of the global shortcut, if it is registered. */
 export function createTray(actions: TrayActions, shortcut: string | undefined): Tray {
   const tray = new Tray(nativeImage.createFromPath(trayIconPath));
-  tray.setToolTip(shortcut ? `DevShare (${shortcut})` : 'DevShare');
+  updateTrayShortcut(tray, shortcut);
   tray.setContextMenu(Menu.buildFromTemplate(trayMenuTemplate(actions)));
   tray.on('click', actions.open);
   return tray;
+}
+
+/** Shows the global shortcut, if it is registered, in the tray icon's tooltip. */
+export function updateTrayShortcut(tray: Tray, shortcut: string | undefined): void {
+  tray.setToolTip(shortcut ? `DevShare (${shortcut})` : 'DevShare');
 }
 
 /** Tells the user, once, that closing the window left DevShare running in the tray. */
@@ -26,6 +31,6 @@ export function showStillRunningNotice(tray: Tray, shortcut: string | undefined)
 export function showShortcutUnavailableNotice(tray: Tray, shortcut: string): void {
   tray.displayBalloon({
     title: `${shortcut} is not available`,
-    content: `Another app is already using ${shortcut}. Open DevShare from the tray icon instead.`,
+    content: `Another app is already using ${shortcut}. Choose another shortcut in DevShare's settings, or open it from the tray icon.`,
   });
 }

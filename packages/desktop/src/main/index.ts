@@ -1,30 +1,55 @@
-import { loadLocalSharingService } from '@devshare/core';
+import { dirname, join } from 'node:path';
+
+import { loadLocalSharingService, resolveConfigPath } from '@devshare/core';
 import { app, dialog, session, type BrowserWindow, type Tray } from 'electron';
 
 import { IPC_EVENTS } from '../shared/ipc.js';
+import { shortcutLabel } from '../shared/shortcuts.js';
 import { AttachmentStore } from './attachment-store.js';
 import { hideOnClose, showWindow } from './background.js';
 import { readSystemClipboard } from './clipboard.js';
 import { readAttachmentWithinLimit } from './files.js';
 import { registerIpcHandlers } from './ipc.js';
 import { createIpcHandlers } from './ipc-handlers.js';
+import { electronLoginItem, START_IN_TRAY_ARG } from './login-item.js';
+import { PreferencesFile } from './preferences.js';
+import { PreferencesService } from './preferences-service.js';
 import { denyPermissionRequests, hardenWebContents } from './security.js';
-import { registerShortcut, SHORTCUT_LABEL, unregisterShortcuts } from './shortcut.js';
-import { createTray, showShortcutUnavailableNotice, showStillRunningNotice } from './tray.js';
+import { electronShortcuts, unregisterShortcuts } from './shortcut.js';
+import {
+  createTray,
+  showShortcutUnavailableNotice,
+  showStillRunningNotice,
+  updateTrayShortcut,
+} from './tray.js';
 import { createMainWindow, loadRenderer } from './window.js';
 
 let mainWindow: BrowserWindow | undefined;
 // Held for the app's lifetime; a tray that is garbage-collected disappears.
 let tray: Tray | undefined;
 
+/** Desktop preferences live next to `config.json`, with the rest of the user's setup. */
+const PREFERENCES_FILE_NAME = 'desktop.json';
+
 async function start(): Promise<void> {
   await app.whenReady();
   denyPermissionRequests(session.defaultSession);
 
-  const window = createMainWindow();
+  const startedInTray = process.argv.includes(START_IN_TRAY_ARG);
+  const window = createMainWindow(!startedInTray);
   mainWindow = window;
-  const shortcutRegistered = registerShortcut(summonMainWindow);
-  const shortcut = shortcutRegistered ? SHORTCUT_LABEL : undefined;
+  const preferences = await PreferencesService.start({
+    file: new PreferencesFile(join(dirname(resolveConfigPath()), PREFERENCES_FILE_NAME)),
+    shortcuts: electronShortcuts,
+    loginItem: electronLoginItem,
+    onShortcut: summonMainWindow,
+  });
+  /** Label of the global shortcut, if it is registered. */
+  const activeShortcut = () => {
+    const { shortcut, shortcutActive } = preferences.view();
+    return shortcutActive ? shortcutLabel(shortcut) : undefined;
+  };
+
   const appTray = createTray(
     {
       open: summonMainWindow,
@@ -32,16 +57,16 @@ async function start(): Promise<void> {
         app.quit();
       },
     },
-    shortcut,
+    activeShortcut(),
   );
   tray = appTray;
-  if (!shortcutRegistered) {
-    showShortcutUnavailableNotice(appTray, SHORTCUT_LABEL);
+  if (!preferences.view().shortcutActive) {
+    showShortcutUnavailableNotice(appTray, shortcutLabel(preferences.view().shortcut));
   }
   app.on(
     'before-quit',
     hideOnClose(window, () => {
-      showStillRunningNotice(appTray, shortcut);
+      showStillRunningNotice(appTray, activeShortcut());
     }),
   );
   registerIpcHandlers(
@@ -58,6 +83,15 @@ async function start(): Promise<void> {
       attachments: new AttachmentStore(),
       readClipboard: readSystemClipboard,
       now: () => new Date(),
+      preferences: {
+        view: () => preferences.view(),
+        update: async (input) => {
+          const view = await preferences.update(input);
+          updateTrayShortcut(appTray, activeShortcut());
+          return view;
+        },
+      },
+      launchState: { startedInTray },
     }),
     // Only DevShare's own window, and only its top-level page, may call the API.
     (event) => event.sender === window.webContents && event.senderFrame === event.sender.mainFrame,

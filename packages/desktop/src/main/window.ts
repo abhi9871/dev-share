@@ -5,7 +5,8 @@ import { app, BrowserWindow } from 'electron';
 /** Set by electron-vite while running `electron-vite dev`. */
 const DEV_SERVER_URL_ENV = 'ELECTRON_RENDERER_URL';
 
-export function createMainWindow(): BrowserWindow {
+/** `showWhenReady` is false when DevShare starts hidden in the tray. */
+export function createMainWindow(showWhenReady: boolean): BrowserWindow {
   const window = new BrowserWindow({
     title: 'DevShare',
     width: 560,
@@ -21,9 +22,11 @@ export function createMainWindow(): BrowserWindow {
       sandbox: true,
     },
   });
-  window.once('ready-to-show', () => {
-    window.show();
-  });
+  if (showWhenReady) {
+    window.once('ready-to-show', () => {
+      window.show();
+    });
+  }
   return window;
 }
 

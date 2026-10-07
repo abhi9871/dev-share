@@ -171,3 +171,55 @@ button.remove {
 .error p {
   margin: 0;
 }
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings p {
+  margin: 0;
+}
+
+.shortcut-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+kbd {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+button.recording {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.checkbox input {
+  margin: 3px 0 0;
+}
+
+.checkbox > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
