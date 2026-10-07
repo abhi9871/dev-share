@@ -5,19 +5,23 @@ import { ShareForm } from './ShareForm.js';
 import { useDestinations } from './useDestinations.js';
 
 export function App() {
-  const destinations = useDestinations();
   const [showSettings, setShowSettings] = useState(false);
+  // Bumped when leaving settings, where destinations may have changed.
+  const [destinationsVersion, setDestinationsVersion] = useState(0);
+  const destinations = useDestinations(destinationsVersion);
+
+  function toggleSettings() {
+    if (showSettings) {
+      setDestinationsVersion((current) => current + 1);
+    }
+    setShowSettings(!showSettings);
+  }
 
   return (
     <main className="app">
       <header className="app-header">
         <h1>{showSettings ? 'Settings' : 'DevShare'}</h1>
-        <button
-          type="button"
-          onClick={() => {
-            setShowSettings((current) => !current);
-          }}
-        >
+        <button type="button" onClick={toggleSettings}>
           {showSettings ? 'Back' : 'Settings'}
         </button>
       </header>
@@ -31,7 +35,7 @@ export function App() {
           <div className="error" role="alert">
             <p>{destinations.error.message}</p>
             {destinations.error.code === 'CONFIG_NOT_FOUND' && (
-              <p>Create this file to set up your destinations; see Configuration in the README.</p>
+              <p>Open Settings and add a destination to get started.</p>
             )}
           </div>
         )}

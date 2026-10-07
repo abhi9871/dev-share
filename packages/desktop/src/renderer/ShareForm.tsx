@@ -22,7 +22,11 @@ interface ShareFormProps {
 }
 
 export function ShareForm({ destinations }: ShareFormProps) {
-  const [destination, setDestination] = useState(destinations.defaultDestination ?? '');
+  const [chosenDestination, setDestination] = useState(destinations.defaultDestination ?? '');
+  // Falls back to the default if the chosen destination was renamed or removed in settings.
+  const destination = destinations.destinations.some((d) => d.name === chosenDestination)
+    ? chosenDestination
+    : (destinations.defaultDestination ?? '');
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState<readonly AttachmentView[]>([]);
   const [picking, setPicking] = useState(false);

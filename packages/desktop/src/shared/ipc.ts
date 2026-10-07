@@ -79,6 +79,39 @@ export interface LaunchStateView {
   readonly startedInTray: boolean;
 }
 
+/**
+ * Where a destination's webhook URL comes from. The URL itself never reaches the renderer.
+ * - `saved`: in the `.env` file next to the config file.
+ * - `environment`: an environment variable, which takes precedence over the `.env` file.
+ * - `missing`: nowhere yet, so sharing to the destination fails.
+ * - `not-applicable`: the destination's type does not use a webhook URL.
+ */
+export type WebhookStatus = 'saved' | 'environment' | 'missing' | 'not-applicable';
+
+export interface DestinationSettingsItem {
+  readonly name: string;
+  readonly type: string;
+  readonly webhookStatus: WebhookStatus;
+  /** Name of the environment variable holding the webhook URL; safe to show. */
+  readonly webhookVariable: string | undefined;
+}
+
+export interface DestinationSettingsView {
+  /** Location of `config.json`; the `.env` file is in the same folder. */
+  readonly configPath: string;
+  /** Empty when there is no config file yet. */
+  readonly destinations: readonly DestinationSettingsItem[];
+  readonly defaultDestination: string | undefined;
+}
+
+/** Adds a destination, or changes the one named `originalName`. */
+export interface SaveDestinationRequest {
+  readonly originalName?: string;
+  readonly name: string;
+  /** Required for a new destination; when changing one, omit it to keep the saved URL. */
+  readonly webhookUrl?: string;
+}
+
 /** The API the preload script exposes to the renderer as `window.devshare`. */
 export interface DevShareApi {
   getDestinations(): Promise<IpcResult<DestinationsView>>;
@@ -86,6 +119,11 @@ export interface DevShareApi {
   getPreferences(): Promise<IpcResult<PreferencesView>>;
   /** Applies and saves preference changes; resolves with all preferences afterwards. */
   updatePreferences(update: PreferencesUpdate): Promise<IpcResult<PreferencesView>>;
+  getDestinationSettings(): Promise<IpcResult<DestinationSettingsView>>;
+  /** Each change resolves with the destinations as they are afterwards. */
+  saveDestination(request: SaveDestinationRequest): Promise<IpcResult<DestinationSettingsView>>;
+  removeDestination(name: string): Promise<IpcResult<DestinationSettingsView>>;
+  setDefaultDestination(name: string): Promise<IpcResult<DestinationSettingsView>>;
   /** Lets the user choose files to attach; resolves with none if they cancel. */
   pickFiles(): Promise<IpcResult<readonly AttachmentView[]>>;
   /** Reads the clipboard's text and image; the image is attached for sharing. */
@@ -102,6 +140,10 @@ export const IPC_CHANNELS: { readonly [Method in keyof DevShareApi]: string } = 
   getLaunchState: 'devshare:get-launch-state',
   getPreferences: 'devshare:get-preferences',
   updatePreferences: 'devshare:update-preferences',
+  getDestinationSettings: 'devshare:get-destination-settings',
+  saveDestination: 'devshare:save-destination',
+  removeDestination: 'devshare:remove-destination',
+  setDefaultDestination: 'devshare:set-default-destination',
   pickFiles: 'devshare:pick-files',
   readClipboard: 'devshare:read-clipboard',
   removeAttachment: 'devshare:remove-attachment',

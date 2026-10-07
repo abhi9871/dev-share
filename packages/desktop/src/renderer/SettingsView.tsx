@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import type { IpcError, PreferencesUpdate, PreferencesView } from '../shared/ipc.js';
+import { DestinationSettings } from './DestinationSettings.js';
 import { ShortcutField } from './ShortcutField.js';
 
 type PreferencesState =
@@ -96,9 +97,7 @@ export function SettingsView() {
         </p>
       )}
 
-      <p className="muted">
-        Destinations are set up in config.json; see Configuration in the README.
-      </p>
+      <DestinationSettings />
     </section>
   );
 }

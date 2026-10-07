@@ -10,8 +10,8 @@ devshare --file screenshot.png "Login fails after token refresh, see screenshot"
 
 > **Status: early development.** The `devshare` command-line tool works today, and the desktop
 > app shares messages, files, and clipboard content from the system tray, one `Ctrl+Shift+A`
-> away (see [Desktop app](#desktop-app)). Managing destinations in the app is on the
-> [roadmap](#roadmap).
+> away, and you can set up destinations in its **Settings** (see [Desktop app](#desktop-app)).
+> Explorer integration and Claude Code `/share` are on the [roadmap](#roadmap).
 
 ## Why
 
@@ -29,15 +29,14 @@ DevShare turns that into one step from wherever you already are:
 
 - `devshare` CLI: share a message, one or more files, or both together as a single share
 - Desktop app: opens with your copied text and image ready to share; add a message and files,
-  pick a destination, and share
+  pick a destination, and share. Destinations and webhook URLs can be set up in the app.
 - Multiple named destinations (for example _general_, _backend_, _bugs_) with a default
 - Discord webhook delivery: text and all attachments arrive as one message
 - Secrets stay local: webhook URLs live in environment variables or a local `.env` file, never in
   the config file or this repository
 - Clear, specific error messages that never print webhook URLs
 
-**Planned** — see the [roadmap](#roadmap): managing destinations in the desktop app, Explorer
-integration, Claude Code `/share`.
+**Planned** — see the [roadmap](#roadmap): Explorer integration, Claude Code `/share`.
 
 ### Supported content
 
@@ -110,6 +109,11 @@ DevShare reads these local files, all kept **outside** any repository:
 
 Set the `DEVSHARE_CONFIG` environment variable to use a different config file; the `.env` and
 `desktop.json` files are always in the same folder as the config file.
+
+**Using the desktop app?** You can skip the steps below: open **Settings → Destinations →
+Add destination…**, enter a name and the channel's webhook URL (step 1), and DevShare writes
+`config.json` and `.env` for you. The steps below are for the CLI on its own, or for editing the
+files by hand; both ways produce the same files.
 
 ### 1. Create a Discord webhook
 
@@ -224,9 +228,8 @@ With the desktop app: copy, press `Ctrl+Shift+A`, pick _backend_, check the prev
 
 ## Desktop app
 
-> **In development.** The desktop app shares messages, files, and clipboard content. Managing
-> destinations and webhook URLs in the app comes next; until then, edit `config.json` and
-> `.env` (see [Configuration](#configuration)).
+> **In development.** The desktop app shares messages, files, and clipboard content, and sets
+> up destinations for you. It is run from this repository until there is an installer.
 
 When the app opens, whatever you copied is ready to share: copied text fills the message box,
 and a copied image or screenshot (for example from `Win+Shift+S`) is attached as a PNG with a
@@ -260,8 +263,16 @@ shortcut in **Settings**, or open DevShare from the tray icon.
 Until DevShare has an installer, start at sign-in runs DevShare from this repository's folder:
 if you move or delete the folder, turn the setting off and on again (or off for good).
 
-The desktop app uses the same core library, `config.json`, and `.env` as the CLI; there is
-nothing extra to configure. From the repository root:
+**Destinations** are also managed in **Settings**: add one with a name and a Discord webhook
+URL, rename it or replace its URL with **Edit…**, choose which one is preselected with **Make
+default**, and remove the ones you no longer need. Changes are written to `config.json` and
+`.env` (see [Configuration](#configuration)), so the CLI uses them too, and edits you make to
+those files by hand are kept. Each destination shows whether its webhook URL is saved, missing,
+or set by an environment variable (which takes precedence over the saved one). Saved URLs are
+never shown again; to change one, enter the new URL.
+
+The desktop app uses the same core library, `config.json`, and `.env` as the CLI. From the
+repository root:
 
 ```sh
 npm run desktop       # build and start the app
@@ -285,7 +296,8 @@ organization blocks unsigned executables, the CLI remains fully usable.
 - **Locked-down desktop UI.** The desktop window runs with context isolation, sandboxing, and
   no Node.js access, under a strict Content Security Policy; it cannot navigate away or open
   other windows. It talks to the main process only through a small typed API, and never
-  receives webhook URLs or destination settings. Files are chosen in a native dialog and read
+  receives webhook URLs or destination settings: a webhook URL entered in **Settings** goes one
+  way, to the `.env` file, and the window only learns whether one is saved. Files are chosen in a native dialog and read
   by the main process; the window refers to them only by opaque IDs, so it can never ask
   DevShare to read a path of its choosing.
 - **Repository hygiene.** `.gitignore` excludes `.env` files. Never commit real webhook URLs,
@@ -351,10 +363,11 @@ Rebuild (`npm run build`) after changing source before using the `devshare` comm
 ### Testing
 
 Tests use [Vitest](https://vitest.dev/) and live in `packages/*/tests/`. They cover behavior:
-payload validation, configuration, destination selection, the sharing service, the Discord
-transport, CLI argument handling, and the desktop app's main process (IPC request validation,
-attachment and clipboard handling, and sharing). Network access is always faked; tests never contact a real
-webhook. Tests and type-checking run against package sources directly, so no build is needed
+payload validation, configuration (reading and writing `config.json` and `.env`), destination
+selection, the sharing service, the Discord transport, CLI argument handling, and the desktop
+app's main process (IPC request validation, attachments, clipboard, preferences, destination
+management, and sharing). Network access is always faked; tests never contact a real webhook,
+and file tests use temporary folders, never your real configuration. Tests and type-checking run against package sources directly, so no build is needed
 first.
 
 CI runs `npm run check` on Windows with Node.js 22 and 24 for every pull request.
@@ -372,7 +385,7 @@ CI runs `npm run check` on Windows with Node.js 22 and 24 for every pull request
 | Available | Desktop: runs in the system tray                                |
 | Available | Desktop: global shortcut (`Ctrl+Shift+A`)                       |
 | Available | Desktop: settings (shortcut, clipboard, start at sign-in)       |
-| Next      | Desktop: manage destinations and webhook URLs in the app        |
+| Available | Desktop: manage destinations and webhook URLs in the app        |
 | Planned   | Windows Explorer "Share with DevShare"                          |
 | Planned   | Claude Code `/share` integration                                |
 | Planned   | Additional transports (for example Slack)                       |

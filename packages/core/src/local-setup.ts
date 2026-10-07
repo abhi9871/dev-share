@@ -19,6 +19,11 @@ export interface LocalSetupOptions {
   readonly transports?: readonly TransportFactory[];
 }
 
+/** The `.env` file that goes with a config file: the one in the same folder. */
+export function envFilePathFor(configPath: string): string {
+  return join(dirname(configPath), ENV_FILE_NAME);
+}
+
 /**
  * Creates a sharing service from the user's local setup: the config file plus secrets from
  * the `.env` file next to it and from environment variables.
@@ -30,7 +35,7 @@ export async function loadLocalSharingService(
   const configPath = options.configPath ?? resolveConfigPath({ env });
   const [config, fileEnv] = await Promise.all([
     loadConfig(configPath),
-    readEnvFile(join(dirname(configPath), ENV_FILE_NAME)),
+    readEnvFile(envFilePathFor(configPath)),
   ]);
   return new SharingService({
     config,
