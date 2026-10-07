@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 import { DevShareError } from './errors.js';
+import { writeFileAtomic } from './files.js';
 import { systemErrorCode } from './node-errors.js';
 import { stripByteOrderMark } from './text.js';
 
@@ -111,6 +112,25 @@ export function defaultDestination(config: DevShareConfig): DestinationConfig | 
   }
   const [onlyDestination, ...others] = config.destinations;
   return others.length === 0 ? onlyDestination : undefined;
+}
+
+/**
+ * Writes a config file in the format `loadConfig` reads. The config is validated first, so
+ * an invalid config is never written.
+ */
+export async function saveConfig(path: string, config: DevShareConfig): Promise<void> {
+  const json = {
+    ...(config.defaultDestination !== undefined && {
+      defaultDestination: config.defaultDestination,
+    }),
+    destinations: config.destinations.map(({ name, type, settings }) => ({
+      name,
+      type,
+      ...settings,
+    })),
+  };
+  parseConfig(json, path);
+  await writeFileAtomic(path, `${JSON.stringify(json, undefined, 2)}\n`);
 }
 
 async function readConfigFile(path: string): Promise<string> {

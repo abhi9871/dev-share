@@ -15,6 +15,7 @@ import type {
   ShareRequest,
 } from '../shared/ipc.js';
 import type { AttachmentStore } from './attachment-store.js';
+import type { DestinationSettings } from './destination-settings.js';
 import { DesktopError, invalidRequest } from './errors.js';
 import { MAX_ATTACHMENT_BYTES } from './files.js';
 
@@ -37,6 +38,11 @@ export interface IpcHandlerDependencies {
     update(input: unknown): Promise<PreferencesView>;
   };
   readonly launchState: LaunchStateView;
+  /** Validates renderer input itself; see `DestinationSettings`. */
+  readonly destinationSettings: Pick<
+    DestinationSettings,
+    'view' | 'save' | 'remove' | 'setDefault'
+  >;
 }
 
 /** The system clipboard's contents, as read by the main process. */
@@ -73,6 +79,14 @@ export function createIpcHandlers(deps: IpcHandlerDependencies): IpcHandlers {
     getPreferences: () => toResult(() => deps.preferences.view()),
 
     updatePreferences: (input) => toResult(() => deps.preferences.update(input)),
+
+    getDestinationSettings: () => toResult(() => deps.destinationSettings.view()),
+
+    saveDestination: (input) => toResult(() => deps.destinationSettings.save(input)),
+
+    removeDestination: (input) => toResult(() => deps.destinationSettings.remove(input)),
+
+    setDefaultDestination: (input) => toResult(() => deps.destinationSettings.setDefault(input)),
 
     pickFiles: () =>
       toResult(async () => {

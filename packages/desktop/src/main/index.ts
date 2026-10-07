@@ -10,6 +10,7 @@ import { hideOnClose, showWindow } from './background.js';
 import { readSystemClipboard } from './clipboard.js';
 import { readAttachmentWithinLimit } from './files.js';
 import { registerIpcHandlers } from './ipc.js';
+import { DestinationSettings } from './destination-settings.js';
 import { createIpcHandlers } from './ipc-handlers.js';
 import { electronLoginItem, START_IN_TRAY_ARG } from './login-item.js';
 import { PreferencesFile } from './preferences.js';
@@ -92,6 +93,10 @@ async function start(): Promise<void> {
         },
       },
       launchState: { startedInTray },
+      destinationSettings: new DestinationSettings({
+        configPath: resolveConfigPath(),
+        env: process.env,
+      }),
     }),
     // Only DevShare's own window, and only its top-level page, may call the API.
     (event) => event.sender === window.webContents && event.senderFrame === event.sender.mainFrame,

@@ -7,8 +7,11 @@ export type DestinationsState =
   | { readonly status: 'error'; readonly error: IpcError }
   | { readonly status: 'ready'; readonly value: DestinationsView };
 
-/** Loads the configured destinations from the main process. */
-export function useDestinations(): DestinationsState {
+/**
+ * Loads the configured destinations from the main process, and again whenever `version`
+ * changes. While reloading, the previous destinations stay in place.
+ */
+export function useDestinations(version: number): DestinationsState {
   const [state, setState] = useState<DestinationsState>({ status: 'loading' });
 
   useEffect(() => {
@@ -25,7 +28,7 @@ export function useDestinations(): DestinationsState {
     return () => {
       active = false;
     };
-  }, []);
+  }, [version]);
 
   return state;
 }

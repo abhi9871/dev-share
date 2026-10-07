@@ -18,11 +18,18 @@ import {
 import {
   IPC_CHANNELS,
   IPC_EVENTS,
+  type DestinationSettingsView,
   type IpcResult,
   type PreferencesView,
 } from '../src/shared/ipc.js';
 
 const NO_DESTINATIONS: DestinationList = { destinations: [], defaultDestination: undefined };
+
+const DESTINATION_SETTINGS: DestinationSettingsView = {
+  configPath: 'C:\\Users\\me\\AppData\\Roaming\\DevShare\\config.json',
+  destinations: [],
+  defaultDestination: undefined,
+};
 
 const PREFERENCES: PreferencesView = {
   shortcut: 'CommandOrControl+Shift+A',
@@ -58,6 +65,12 @@ function createHandlers(overrides: Partial<IpcHandlerDependencies> = {}) {
       update: () => Promise.resolve(PREFERENCES),
     },
     launchState: { startedInTray: false },
+    destinationSettings: {
+      view: () => Promise.resolve(DESTINATION_SETTINGS),
+      save: () => Promise.resolve(DESTINATION_SETTINGS),
+      remove: () => Promise.resolve(DESTINATION_SETTINGS),
+      setDefault: () => Promise.resolve(DESTINATION_SETTINGS),
+    },
     ...overrides,
   });
 }

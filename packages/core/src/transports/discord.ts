@@ -39,7 +39,7 @@ export function createDiscordTransportFactory(
     type: DISCORD_TRANSPORT_TYPE,
     create(destination, env): Transport {
       const secret = readSecretSetting(destination, WEBHOOK_SETTING, env);
-      if (!isWebhookUrl(secret.value)) {
+      if (!isDiscordWebhookUrl(secret.value)) {
         throw new DevShareError(
           'INVALID_DESTINATION',
           `Destination "${destination.name}": ${secret.variable} is not a Discord webhook URL.`,
@@ -113,7 +113,8 @@ function toFormData(payload: SharePayload): FormData {
   return form;
 }
 
-function isWebhookUrl(value: string): boolean {
+/** Whether `value` is an HTTPS Discord channel webhook URL. */
+export function isDiscordWebhookUrl(value: string): boolean {
   if (!URL.canParse(value)) {
     return false;
   }
