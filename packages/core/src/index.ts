@@ -22,6 +22,7 @@ export {
   type ShareResult,
   type SharingServiceOptions,
 } from './sharing-service.js';
+export { stripByteOrderMark } from './text.js';
 export type { Environment, Transport, TransportFactory } from './transport.js';
 export { createBuiltInTransports } from './transports/index.js';
 export { DISCORD_TRANSPORT_TYPE, isDiscordWebhookUrl } from './transports/discord.js';

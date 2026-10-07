@@ -9,6 +9,14 @@ import {
   type CliDependencies,
 } from '../src/run.js';
 
+const DESTINATIONS = {
+  destinations: [
+    { name: 'General', type: 'discord' },
+    { name: 'backend', type: 'discord' },
+  ],
+  defaultDestination: 'General',
+};
+
 interface Sent {
   readonly payload: SharePayload;
   readonly destination: string | undefined;
@@ -35,12 +43,14 @@ async function run(
     writeOut: (text) => (out += text),
     writeError: (text) => (err += text),
     readAttachment: (path) => Promise.resolve(fakeAttachment(path)),
+    readStdin: () => Promise.reject(new Error('stdin should not be read')),
     loadSharingService: () =>
       Promise.resolve({
         share: (payload, destination) => {
           sent.push({ payload, destination });
           return Promise.resolve({ destination: destination ?? 'General' });
         },
+        listDestinations: () => DESTINATIONS,
       }),
     ...overrides,
   });
@@ -149,10 +159,68 @@ describe('devshare CLI', () => {
         Promise.resolve({
           share: () =>
             Promise.reject(new DevShareError('DESTINATION_NOT_FOUND', 'Unknown destination "x".')),
+          listDestinations: () => DESTINATIONS,
         }),
     });
 
     expect(exitCode).toBe(EXIT_FAILURE);
     expect(err).toBe('devshare: Unknown destination "x".\n');
+  });
+
+  it('shares the message read from standard input, verbatim', async () => {
+    const log = 'FAIL src/auth.test.ts\n  expected "ok" but got \'error\'\n';
+
+    const { exitCode, out, sent } = await run(['--stdin', '-d', 'bugs'], {
+      readStdin: () => Promise.resolve(log),
+    });
+
+    expect(exitCode).toBe(EXIT_SUCCESS);
+    expect(sent).toEqual([{ payload: { text: log, attachments: [] }, destination: 'bugs' }]);
+    expect(out).toBe('Shared message to bugs.\n');
+  });
+
+  it('drops a byte-order mark that Windows tools add to piped text', async () => {
+    const { sent } = await run(['--stdin'], { readStdin: () => Promise.resolve('\uFEFFhello') });
+
+    expect(sent[0]?.payload.text).toBe('hello');
+  });
+
+  it('shares files with a message from standard input', async () => {
+    const { sent } = await run(['--stdin', '--file', 'test.log'], {
+      readStdin: () => Promise.resolve('See the log'),
+    });
+
+    expect(sent[0]?.payload).toEqual({
+      text: 'See the log',
+      attachments: [fakeAttachment('test.log')],
+    });
+  });
+
+  it('reports empty standard input as nothing to share', async () => {
+    const { exitCode, err, sent } = await run(['--stdin'], {
+      readStdin: () => Promise.resolve('  \n'),
+    });
+
+    expect(exitCode).toBe(EXIT_FAILURE);
+    expect(err).toBe('devshare: Nothing to share: provide text or at least one file.\n');
+    expect(sent).toEqual([]);
+  });
+
+  it('lists destinations one per line, marking the default', async () => {
+    const { exitCode, out, sent } = await run(['--list']);
+
+    expect(exitCode).toBe(EXIT_SUCCESS);
+    expect(out).toBe('General (default)\nbackend\n');
+    expect(sent).toEqual([]);
+  });
+
+  it('reports a missing config when listing destinations', async () => {
+    const { exitCode, err } = await run(['--list'], {
+      loadSharingService: () =>
+        Promise.reject(new DevShareError('CONFIG_NOT_FOUND', 'Config file not found: "x".')),
+    });
+
+    expect(exitCode).toBe(EXIT_FAILURE);
+    expect(err).toContain('#configuration');
   });
 });
