@@ -32,7 +32,11 @@ let tray: Tray | undefined;
 /** Desktop preferences live next to `config.json`, with the rest of the user's setup. */
 const PREFERENCES_FILE_NAME = 'desktop.json';
 
+/** Must match `appId` in electron-builder.yml, so Windows ties notices to the Start-menu entry. */
+const APP_USER_MODEL_ID = 'com.abhi9871.devshare';
+
 async function start(): Promise<void> {
+  app.setAppUserModelId(APP_USER_MODEL_ID);
   await app.whenReady();
   denyPermissionRequests(session.defaultSession);
 

@@ -6,7 +6,8 @@ const SOURCE_CONDITION = '@devshare/source';
 
 export default defineConfig({
   main: {
-    // Bundle @devshare/core from source instead of loading its separate build output.
+    // Bundle @devshare/core from source instead of loading its separate build output. With
+    // core bundled, the packaged app has no runtime node_modules (see electron-builder.yml).
     build: { externalizeDeps: { exclude: ['@devshare/core'] } },
     resolve: { conditions: [SOURCE_CONDITION] },
     ssr: { resolve: { conditions: [SOURCE_CONDITION] } },
