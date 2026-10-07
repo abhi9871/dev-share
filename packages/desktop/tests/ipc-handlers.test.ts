@@ -14,7 +14,7 @@ import {
   MAX_TEXT_LENGTH,
   type IpcHandlerDependencies,
 } from '../src/main/ipc-handlers.js';
-import { IPC_CHANNELS, type IpcResult } from '../src/shared/ipc.js';
+import { IPC_CHANNELS, IPC_EVENTS, type IpcResult } from '../src/shared/ipc.js';
 
 const NO_DESTINATIONS: DestinationList = { destinations: [], defaultDestination: undefined };
 
@@ -402,8 +402,8 @@ describe('share handler', () => {
 });
 
 describe('IPC contract', () => {
-  it('uses a distinct, namespaced channel for every API method', () => {
-    const channels = Object.values(IPC_CHANNELS);
+  it('uses a distinct, namespaced channel for every API method and notification', () => {
+    const channels = [...Object.values(IPC_CHANNELS), ...Object.values(IPC_EVENTS)];
 
     expect(new Set(channels).size).toBe(channels.length);
     expect(channels.every((channel) => channel.startsWith('devshare:'))).toBe(true);

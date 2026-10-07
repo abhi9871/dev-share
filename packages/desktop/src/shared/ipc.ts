@@ -77,3 +77,17 @@ export const IPC_CHANNELS: { readonly [Method in keyof DevShareApi]: string } = 
   removeAttachment: 'devshare:remove-attachment',
   share: 'devshare:share',
 };
+
+/** Notifications from the main process, which the renderer subscribes to. */
+export interface DevShareEvents {
+  /**
+   * Called when the user brings DevShare up: with the global shortcut, from the tray, or by
+   * starting it again. Returns a function that unsubscribes.
+   */
+  onSummoned(listener: () => void): () => void;
+}
+
+/** One IPC channel per main-to-renderer notification. */
+export const IPC_EVENTS: { readonly [Event in keyof DevShareEvents]: string } = {
+  onSummoned: 'devshare:summoned',
+};

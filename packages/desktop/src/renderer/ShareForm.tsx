@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState, type KeyboardEvent, type SubmitEvent } from 'react';
 
-import type { AttachmentView, ClipboardView, DestinationsView, IpcError } from '../shared/ipc.js';
+import type {
+  AttachmentView,
+  ClipboardView,
+  DestinationsView,
+  IpcError,
+  IpcResult,
+} from '../shared/ipc.js';
 import { AttachmentList } from './AttachmentList.js';
 import { DestinationPicker } from './DestinationPicker.js';
 
@@ -37,12 +43,13 @@ export function ShareForm({ destinations }: ShareFormProps) {
     }
   }, []);
 
-  // Start with whatever was copied, so the usual flow is: copy, open DevShare, press Share.
-  useEffect(() => {
-    let active = true;
-    void window.devshare.readClipboard().then((result) => {
-      if (!active) {
-        // The form went away before the clipboard was read; release the attached image.
+  /**
+   * Adds a clipboard read to the share. `wanted` is false if the form no longer needs the
+   * result by the time it arrives; any attached image is then released again.
+   */
+  const applyClipboardResult = useCallback(
+    (result: IpcResult<ClipboardView>, wanted: boolean) => {
+      if (!wanted) {
         if (result.ok && result.value.image) {
           void window.devshare.removeAttachment(result.value.image.id);
         }
@@ -54,11 +61,43 @@ export function ShareForm({ destinations }: ShareFormProps) {
         addClipboardContent(result.value);
         setStatus({ kind: 'info', message: 'Loaded from your clipboard.' });
       }
+    },
+    [addClipboardContent],
+  );
+
+  // Start with whatever was copied, so the usual flow is: copy, open DevShare, press Share.
+  useEffect(() => {
+    let active = true;
+    void window.devshare.readClipboard().then((result) => {
+      applyClipboardResult(result, active);
     });
     return () => {
       active = false;
     };
-  }, [addClipboardContent]);
+  }, [applyClipboardResult]);
+
+  // Bringing DevShare up again (shortcut, tray, relaunch) picks up what was copied since,
+  // unless there is an unsent draft: that is kept as it is rather than mixed with new content.
+  const draftEmpty = text === '' && attachments.length === 0;
+  useEffect(
+    () =>
+      window.devshare.onSummoned(() => {
+        if (sending) {
+          return;
+        }
+        if (draftEmpty) {
+          void window.devshare.readClipboard().then((result) => {
+            applyClipboardResult(result, true);
+          });
+        } else {
+          setStatus({
+            kind: 'info',
+            message: 'Your unsent draft was kept. Use Paste from clipboard to add what you copied.',
+          });
+        }
+      }),
+    [draftEmpty, sending, applyClipboardResult],
+  );
 
   async function pasteFromClipboard() {
     const result = await window.devshare.readClipboard();
