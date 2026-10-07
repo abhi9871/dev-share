@@ -9,9 +9,8 @@ devshare --file screenshot.png "Login fails after token refresh, see screenshot"
 ```
 
 > **Status: early development.** The `devshare` command-line tool works today, and the desktop
-> app can share messages, files, and clipboard content from the system tray (see
-> [Desktop app](#desktop-app)). The `Ctrl+Shift+A` shortcut and a settings screen are on the
-> [roadmap](#roadmap).
+> app shares messages, files, and clipboard content from the system tray, one `Ctrl+Shift+A`
+> away (see [Desktop app](#desktop-app)). A settings screen is on the [roadmap](#roadmap).
 
 ## Why
 
@@ -219,13 +218,12 @@ You hit an error in Claude Code: _"Authentication fails after token refresh."_
 2. Run `devshare -d backend --file screenshot.png "Authentication fails after token refresh"`.
 3. Your teammates see the message and screenshot together in the backend channel.
 
-With the desktop app: copy, open DevShare, pick _backend_, check the preview, **Share**. The
-planned `Ctrl+Shift+A` shortcut will replace opening the app.
+With the desktop app: copy, press `Ctrl+Shift+A`, pick _backend_, check the preview, **Share**.
 
 ## Desktop app
 
-> **In development.** The desktop app shares messages, files, and clipboard content. The
-> `Ctrl+Shift+A` shortcut and a settings screen come next.
+> **In development.** The desktop app shares messages, files, and clipboard content. A
+> settings screen comes next.
 
 When the app opens, whatever you copied is ready to share: copied text fills the message box,
 and a copied image or screenshot (for example from `Win+Shift+S`) is attached as a PNG with a
@@ -241,6 +239,12 @@ DevShare keeps running in the system tray: closing the window hides it, and clic
 icon (or choosing **Open DevShare** from its menu) brings it back with your draft intact.
 Starting DevShare again while it is running also brings up the existing window. To exit,
 choose **Quit DevShare** from the tray icon's menu.
+
+Press **`Ctrl+Shift+A`** in any app to bring up DevShare with what you just copied. If the form
+is empty, the clipboard is loaded into it, just like when the app starts. If you have an
+unsent draft, it is kept as it is; use **Paste from clipboard** to add the new content to it.
+If another app already uses `Ctrl+Shift+A`, DevShare says so when it starts; open it from the
+tray icon instead (the settings screen will let you choose another shortcut).
 
 The desktop app uses the same core library, `config.json`, and `.env` as the CLI; there is
 nothing extra to configure. From the repository root:
@@ -352,7 +356,7 @@ CI runs `npm run check` on Windows with Node.js 22 and 24 for every pull request
 | Available | Desktop: compose and share messages and files                   |
 | Available | Desktop: clipboard detection (text, screenshots) with preview   |
 | Available | Desktop: runs in the system tray                                |
-| Next      | Desktop: global shortcut (`Ctrl+Shift+A`)                       |
+| Available | Desktop: global shortcut (`Ctrl+Shift+A`)                       |
 | Next      | Desktop: settings (destinations, webhooks, preferences)         |
 | Planned   | Windows Explorer "Share with DevShare"                          |
 | Planned   | Claude Code `/share` integration                                |

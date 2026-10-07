@@ -1,6 +1,7 @@
 import { loadLocalSharingService } from '@devshare/core';
 import { app, dialog, session, type BrowserWindow, type Tray } from 'electron';
 
+import { IPC_EVENTS } from '../shared/ipc.js';
 import { AttachmentStore } from './attachment-store.js';
 import { hideOnClose, showWindow } from './background.js';
 import { readSystemClipboard } from './clipboard.js';
@@ -8,7 +9,8 @@ import { readAttachmentWithinLimit } from './files.js';
 import { registerIpcHandlers } from './ipc.js';
 import { createIpcHandlers } from './ipc-handlers.js';
 import { denyPermissionRequests, hardenWebContents } from './security.js';
-import { createTray, showStillRunningNotice } from './tray.js';
+import { registerShortcut, SHORTCUT_LABEL, unregisterShortcuts } from './shortcut.js';
+import { createTray, showShortcutUnavailableNotice, showStillRunningNotice } from './tray.js';
 import { createMainWindow, loadRenderer } from './window.js';
 
 let mainWindow: BrowserWindow | undefined;
@@ -21,19 +23,25 @@ async function start(): Promise<void> {
 
   const window = createMainWindow();
   mainWindow = window;
-  const appTray = createTray({
-    open: () => {
-      showWindow(window);
+  const shortcutRegistered = registerShortcut(summonMainWindow);
+  const shortcut = shortcutRegistered ? SHORTCUT_LABEL : undefined;
+  const appTray = createTray(
+    {
+      open: summonMainWindow,
+      quit: () => {
+        app.quit();
+      },
     },
-    quit: () => {
-      app.quit();
-    },
-  });
+    shortcut,
+  );
   tray = appTray;
+  if (!shortcutRegistered) {
+    showShortcutUnavailableNotice(appTray, SHORTCUT_LABEL);
+  }
   app.on(
     'before-quit',
     hideOnClose(window, () => {
-      showStillRunningNotice(appTray);
+      showStillRunningNotice(appTray, shortcut);
     }),
   );
   registerIpcHandlers(
@@ -57,9 +65,11 @@ async function start(): Promise<void> {
   await loadRenderer(window);
 }
 
-function showMainWindow(): void {
+/** Brings up the window and lets the renderer know, so it can pick up the clipboard. */
+function summonMainWindow(): void {
   if (mainWindow) {
     showWindow(mainWindow);
+    mainWindow.webContents.send(IPC_EVENTS.onSummoned);
   }
 }
 
@@ -68,8 +78,9 @@ if (app.requestSingleInstanceLock()) {
     hardenWebContents(contents);
   });
   // Starting DevShare again while it runs in the background brings up the existing window.
-  app.on('second-instance', showMainWindow);
+  app.on('second-instance', summonMainWindow);
   app.on('will-quit', () => {
+    unregisterShortcuts();
     // Remove the icon right away; Windows can otherwise leave a stale one in the tray.
     tray?.destroy();
   });
