@@ -1,0 +1,38 @@
+# Windows packaging for DevShare: `npm run package` writes both files to release/.
+# Builds are unsigned, so Windows SmartScreen asks for confirmation the first time.
+appId: com.abhi9871.devshare
+productName: DevShare
+copyright: Copyright © 2026 Abhishek Tomar
+
+directories:
+  output: release
+
+# Everything the app needs is bundled into out/ by electron-vite; it has no runtime
+# node_modules. Resources (icons) are read from disk at runtime.
+files:
+  - out/**
+  - resources/**
+  - package.json
+asarUnpack:
+  - resources/**
+npmRebuild: false
+
+win:
+  icon: resources/icon.png
+  target:
+    - nsis
+    - portable
+
+# Per-user install (%LOCALAPPDATA%\Programs\DevShare): no administrator rights needed.
+nsis:
+  oneClick: true
+  perMachine: false
+  createDesktopShortcut: false
+  createStartMenuShortcut: true
+  shortcutName: DevShare
+  runAfterFinish: true
+  artifactName: DevShare-Setup-${version}.exe
+
+# A single DevShare.exe that runs without installing, for machines that block installers.
+portable:
+  artifactName: DevShare-Portable-${version}.exe

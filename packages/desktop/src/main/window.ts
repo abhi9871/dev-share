@@ -2,6 +2,9 @@ import { fileURLToPath } from 'node:url';
 
 import { app, BrowserWindow } from 'electron';
 
+// Unpacked from the installed app archive (see electron-builder.yml), like the tray icon.
+import appIconPath from '../../resources/icon.png?asset&asarUnpack';
+
 /** Set by electron-vite while running `electron-vite dev`. */
 const DEV_SERVER_URL_ENV = 'ELECTRON_RENDERER_URL';
 
@@ -14,6 +17,7 @@ export function createMainWindow(showWhenReady: boolean): BrowserWindow {
     minWidth: 420,
     minHeight: 480,
     show: false,
+    icon: appIconPath,
     autoHideMenuBar: true,
     webPreferences: {
       preload: fileURLToPath(new URL('../preload/index.cjs', import.meta.url)),

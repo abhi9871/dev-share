@@ -97,6 +97,34 @@ To try DevShare without linking, run it from the repository root instead:
 npm run devshare -- "Please check this"
 ```
 
+### Desktop app installer
+
+There is no download yet; build the Windows installer from the repository (after
+`npm install` above):
+
+```sh
+npm run package
+```
+
+This writes two files to `packages/desktop/release/`:
+
+| File                              | Use it when                                                                                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DevShare-Setup-<version>.exe`    | You can run installers. Installs for your user only (no administrator rights) to `%LOCALAPPDATA%\Programs\DevShare`, with a Start-menu entry. |
+| `DevShare-Portable-<version>.exe` | Installers are blocked. A single file that runs from any folder without installing.                                                           |
+
+The builds are not code-signed, so the first time you run one, Windows SmartScreen may show
+"Windows protected your PC": choose **More info → Run anyway**. If your organization blocks
+unsigned programs entirely, use the CLI, or run the app from the repository with
+`npm run desktop`.
+
+The installed or portable app uses the same `config.json`, `.env`, and `desktop.json` in
+`%APPDATA%\DevShare` as the CLI and the development build, so your destinations and settings
+carry over. Uninstall it from **Settings → Apps** in Windows; your configuration is kept.
+
+If you turned on **Start DevShare when I sign in to Windows** in a development build, turn it
+on again in the installed app so that Windows starts the installed copy.
+
 ## Configuration
 
 DevShare reads these local files, all kept **outside** any repository:
@@ -271,7 +299,8 @@ those files by hand are kept. Each destination shows whether its webhook URL is 
 or set by an environment variable (which takes precedence over the saved one). Saved URLs are
 never shown again; to change one, enter the new URL.
 
-The desktop app uses the same core library, `config.json`, and `.env` as the CLI. From the
+The desktop app uses the same core library, `config.json`, and `.env` as the CLI. Install it
+as described in [Desktop app installer](#desktop-app-installer), or run it from the
 repository root:
 
 ```sh
@@ -322,6 +351,8 @@ packages/
           src/preload/   exposes the typed window.devshare API to the renderer
           src/shared/    IPC contract shared by main, preload, and renderer
           src/renderer/  React UI; browser APIs only, no Node.js
+          resources/     app and tray icons
+          electron-builder.yml  Windows installer and portable build
 ```
 
 A share flows through the same pipeline regardless of interface:
@@ -350,6 +381,7 @@ npm run build
 | `npm run devshare -- <args>` | Run the built CLI from the repository              |
 | `npm run desktop`            | Build and start the desktop app                    |
 | `npm run desktop:dev`        | Start the desktop app with live reload             |
+| `npm run package`            | Build the Windows installer and portable app       |
 | `npm run typecheck`          | Type-check all packages, tests, and tooling config |
 | `npm run lint`               | Lint with ESLint (type-aware)                      |
 | `npm run format`             | Format with Prettier                               |

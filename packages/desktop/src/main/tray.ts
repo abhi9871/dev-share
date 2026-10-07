@@ -1,7 +1,8 @@
 import { Menu, nativeImage, Tray } from 'electron';
 
-// Electron picks up the high-DPI tray-icon@2x.png next to this file automatically.
-import trayIconPath from '../../resources/tray-icon.png?asset';
+// Electron picks up the high-DPI tray-icon@2x.png next to this file automatically, which is
+// why resources are unpacked from the installed app archive (see electron-builder.yml).
+import trayIconPath from '../../resources/tray-icon.png?asset&asarUnpack';
 import { trayMenuTemplate, type TrayActions } from './background.js';
 
 /** `shortcut` is the label of the global shortcut, if it is registered. */
