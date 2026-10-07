@@ -10,9 +10,12 @@ import type {
   DevShareApi,
   IpcError,
   IpcResult,
+  LaunchStateView,
+  PreferencesView,
   ShareRequest,
 } from '../shared/ipc.js';
 import type { AttachmentStore } from './attachment-store.js';
+import { DesktopError, invalidRequest } from './errors.js';
 import { MAX_ATTACHMENT_BYTES } from './files.js';
 
 /** Longest message accepted from the renderer; far beyond anything typed or pasted by hand. */
@@ -28,6 +31,12 @@ export interface IpcHandlerDependencies {
   readonly readClipboard: () => Promise<ClipboardContent>;
   /** Current time, used to name images pasted from the clipboard. */
   readonly now: () => Date;
+  readonly preferences: {
+    view(): PreferencesView;
+    /** Validates renderer input itself; see `PreferencesService.update`. */
+    update(input: unknown): Promise<PreferencesView>;
+  };
+  readonly launchState: LaunchStateView;
 }
 
 /** The system clipboard's contents, as read by the main process. */
@@ -58,6 +67,12 @@ export function createIpcHandlers(deps: IpcHandlerDependencies): IpcHandlers {
         ).listDestinations();
         return { destinations, defaultDestination };
       }),
+
+    getLaunchState: () => toResult(() => deps.launchState),
+
+    getPreferences: () => toResult(() => deps.preferences.view()),
+
+    updatePreferences: (input) => toResult(() => deps.preferences.update(input)),
 
     pickFiles: () =>
       toResult(async () => {
@@ -100,7 +115,7 @@ export function createIpcHandlers(deps: IpcHandlerDependencies): IpcHandlers {
     removeAttachment: (input) =>
       toResult(() => {
         if (typeof input !== 'string') {
-          throw new InvalidRequestError();
+          throw invalidRequest();
         }
         deps.attachments.delete(input);
       }),
@@ -111,7 +126,7 @@ export function createIpcHandlers(deps: IpcHandlerDependencies): IpcHandlers {
         const attachments = request.attachmentIds.map((id) => {
           const attachment = deps.attachments.get(id);
           if (!attachment) {
-            throw new InvalidRequestError('An attached file is no longer available; add it again.');
+            throw invalidRequest('An attached file is no longer available; add it again.');
           }
           return attachment;
         });
@@ -127,7 +142,7 @@ export function createIpcHandlers(deps: IpcHandlerDependencies): IpcHandlers {
 
 function parseShareRequest(input: unknown): ShareRequest {
   if (typeof input !== 'object' || input === null) {
-    throw new InvalidRequestError();
+    throw invalidRequest();
   }
   const { destination, text, attachmentIds } = input as Partial<
     Record<keyof ShareRequest, unknown>
@@ -141,7 +156,7 @@ function parseShareRequest(input: unknown): ShareRequest {
     !attachmentIds.every((id) => typeof id === 'string') ||
     new Set(attachmentIds).size !== attachmentIds.length
   ) {
-    throw new InvalidRequestError();
+    throw invalidRequest();
   }
   return { destination, text, attachmentIds };
 }
@@ -163,13 +178,6 @@ function toAttachmentView(id: string, attachment: Attachment): AttachmentView {
   };
 }
 
-/** Renderer input that does not match the IPC contract. */
-class InvalidRequestError extends Error {
-  constructor(message = 'Invalid request.') {
-    super(message);
-  }
-}
-
 /** Runs an action and converts failures into a serializable error for the renderer. */
 async function toResult<T>(action: () => T | Promise<T>): Promise<IpcResult<T>> {
   try {
@@ -183,8 +191,8 @@ function toIpcError(error: unknown): IpcError {
   if (error instanceof DevShareError) {
     return { code: error.code, message: error.message };
   }
-  if (error instanceof InvalidRequestError) {
-    return { code: 'INVALID_REQUEST', message: error.message };
+  if (error instanceof DesktopError) {
+    return { code: error.code, message: error.message };
   }
   return {
     code: 'UNEXPECTED',

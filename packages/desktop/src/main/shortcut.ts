@@ -1,17 +1,14 @@
 import { globalShortcut } from 'electron';
 
-/** Brings up DevShare from any app. */
-export const SHORTCUT = 'CommandOrControl+Shift+A';
-/** How the shortcut is shown to Windows users. */
-export const SHORTCUT_LABEL = 'Ctrl+Shift+A';
+import type { PreferencesServiceDependencies } from './preferences-service.js';
 
-/**
- * Registers the global shortcut. Returns false if it could not be registered, which happens
- * when another app already uses it.
- */
-export function registerShortcut(onPress: () => void): boolean {
-  return globalShortcut.register(SHORTCUT, onPress);
-}
+/** Global shortcuts through Electron, which fails to register ones another app already uses. */
+export const electronShortcuts: PreferencesServiceDependencies['shortcuts'] = {
+  register: (accelerator, onPress) => globalShortcut.register(accelerator, onPress),
+  unregister: (accelerator) => {
+    globalShortcut.unregister(accelerator);
+  },
+};
 
 export function unregisterShortcuts(): void {
   globalShortcut.unregisterAll();

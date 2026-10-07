@@ -10,7 +10,8 @@ devshare --file screenshot.png "Login fails after token refresh, see screenshot"
 
 > **Status: early development.** The `devshare` command-line tool works today, and the desktop
 > app shares messages, files, and clipboard content from the system tray, one `Ctrl+Shift+A`
-> away (see [Desktop app](#desktop-app)). A settings screen is on the [roadmap](#roadmap).
+> away (see [Desktop app](#desktop-app)). Managing destinations in the app is on the
+> [roadmap](#roadmap).
 
 ## Why
 
@@ -35,8 +36,8 @@ DevShare turns that into one step from wherever you already are:
   the config file or this repository
 - Clear, specific error messages that never print webhook URLs
 
-**Planned** — see the [roadmap](#roadmap): global shortcut, settings UI, Explorer integration,
-Claude Code `/share`.
+**Planned** — see the [roadmap](#roadmap): managing destinations in the desktop app, Explorer
+integration, Claude Code `/share`.
 
 ### Supported content
 
@@ -99,15 +100,16 @@ npm run devshare -- "Please check this"
 
 ## Configuration
 
-DevShare reads two local files, both kept **outside** any repository:
+DevShare reads these local files, all kept **outside** any repository:
 
-| File          | Default location (Windows)       | Contains                                     |
-| ------------- | -------------------------------- | -------------------------------------------- |
-| `config.json` | `%APPDATA%\DevShare\config.json` | Destination names and types. **No secrets.** |
-| `.env`        | `%APPDATA%\DevShare\.env`        | Webhook URLs (secrets). Optional, see below. |
+| File           | Default location (Windows)        | Contains                                                     |
+| -------------- | --------------------------------- | ------------------------------------------------------------ |
+| `config.json`  | `%APPDATA%\DevShare\config.json`  | Destination names and types. **No secrets.**                 |
+| `.env`         | `%APPDATA%\DevShare\.env`         | Webhook URLs (secrets). Optional, see below.                 |
+| `desktop.json` | `%APPDATA%\DevShare\desktop.json` | Desktop app preferences; written by its **Settings** screen. |
 
-Set the `DEVSHARE_CONFIG` environment variable to use a different config file; the `.env` file is
-always read from the same folder as the config file.
+Set the `DEVSHARE_CONFIG` environment variable to use a different config file; the `.env` and
+`desktop.json` files are always in the same folder as the config file.
 
 ### 1. Create a Discord webhook
 
@@ -222,8 +224,9 @@ With the desktop app: copy, press `Ctrl+Shift+A`, pick _backend_, check the prev
 
 ## Desktop app
 
-> **In development.** The desktop app shares messages, files, and clipboard content. A
-> settings screen comes next.
+> **In development.** The desktop app shares messages, files, and clipboard content. Managing
+> destinations and webhook URLs in the app comes next; until then, edit `config.json` and
+> `.env` (see [Configuration](#configuration)).
 
 When the app opens, whatever you copied is ready to share: copied text fills the message box,
 and a copied image or screenshot (for example from `Win+Shift+S`) is attached as a PNG with a
@@ -243,8 +246,19 @@ choose **Quit DevShare** from the tray icon's menu.
 Press **`Ctrl+Shift+A`** in any app to bring up DevShare with what you just copied. If the form
 is empty, the clipboard is loaded into it, just like when the app starts. If you have an
 unsent draft, it is kept as it is; use **Paste from clipboard** to add the new content to it.
-If another app already uses `Ctrl+Shift+A`, DevShare says so when it starts; open it from the
-tray icon instead (the settings screen will let you choose another shortcut).
+If another app already uses `Ctrl+Shift+A`, DevShare says so when it starts; choose another
+shortcut in **Settings**, or open DevShare from the tray icon.
+
+**Settings** (top right of the window) has these preferences:
+
+| Setting                                  | Default        | Meaning                                                                                                     |
+| ---------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------- |
+| Shortcut                                 | `Ctrl+Shift+A` | Brings up DevShare from any app. Click **Change…** and press the new keys; it must include `Ctrl` or `Alt`. |
+| Load what I copied when DevShare opens   | On             | Turn off to always start with an empty form; **Paste from clipboard** still works.                          |
+| Start DevShare when I sign in to Windows | Off            | Starts DevShare hidden in the tray.                                                                         |
+
+Until DevShare has an installer, start at sign-in runs DevShare from this repository's folder:
+if you move or delete the folder, turn the setting off and on again (or off for good).
 
 The desktop app uses the same core library, `config.json`, and `.env` as the CLI; there is
 nothing extra to configure. From the repository root:
@@ -357,7 +371,8 @@ CI runs `npm run check` on Windows with Node.js 22 and 24 for every pull request
 | Available | Desktop: clipboard detection (text, screenshots) with preview   |
 | Available | Desktop: runs in the system tray                                |
 | Available | Desktop: global shortcut (`Ctrl+Shift+A`)                       |
-| Next      | Desktop: settings (destinations, webhooks, preferences)         |
+| Available | Desktop: settings (shortcut, clipboard, start at sign-in)       |
+| Next      | Desktop: manage destinations and webhook URLs in the app        |
 | Planned   | Windows Explorer "Share with DevShare"                          |
 | Planned   | Claude Code `/share` integration                                |
 | Planned   | Additional transports (for example Slack)                       |

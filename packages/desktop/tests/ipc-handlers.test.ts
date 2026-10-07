@@ -7,6 +7,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 import { AttachmentStore } from '../src/main/attachment-store.js';
+import { DesktopError } from '../src/main/errors.js';
 import { MAX_ATTACHMENT_BYTES } from '../src/main/files.js';
 import {
   clipboardImageName,
@@ -14,9 +15,21 @@ import {
   MAX_TEXT_LENGTH,
   type IpcHandlerDependencies,
 } from '../src/main/ipc-handlers.js';
-import { IPC_CHANNELS, IPC_EVENTS, type IpcResult } from '../src/shared/ipc.js';
+import {
+  IPC_CHANNELS,
+  IPC_EVENTS,
+  type IpcResult,
+  type PreferencesView,
+} from '../src/shared/ipc.js';
 
 const NO_DESTINATIONS: DestinationList = { destinations: [], defaultDestination: undefined };
+
+const PREFERENCES: PreferencesView = {
+  shortcut: 'CommandOrControl+Shift+A',
+  shortcutActive: true,
+  loadClipboardOnOpen: true,
+  startAtLogin: false,
+};
 
 const INVALID_REQUEST = {
   ok: false,
@@ -40,6 +53,11 @@ function createHandlers(overrides: Partial<IpcHandlerDependencies> = {}) {
     attachments: new AttachmentStore(),
     readClipboard: () => Promise.resolve({ text: '' }),
     now: () => new Date(2026, 9, 6, 15, 30, 12),
+    preferences: {
+      view: () => PREFERENCES,
+      update: () => Promise.resolve(PREFERENCES),
+    },
+    launchState: { startedInTray: false },
     ...overrides,
   });
 }
@@ -398,6 +416,36 @@ describe('share handler', () => {
 
     await expect(handlers.share(input)).resolves.toEqual(INVALID_REQUEST);
     expect(share).not.toHaveBeenCalled();
+  });
+});
+
+describe('preference and launch handlers', () => {
+  it('return the launch state and current preferences', async () => {
+    const handlers = createHandlers({ launchState: { startedInTray: true } });
+
+    await expect(handlers.getLaunchState(undefined)).resolves.toEqual({
+      ok: true,
+      value: { startedInTray: true },
+    });
+    await expect(handlers.getPreferences(undefined)).resolves.toEqual({
+      ok: true,
+      value: PREFERENCES,
+    });
+  });
+
+  it('pass updates through and report their errors with the desktop code', async () => {
+    const update = vi.fn(() =>
+      Promise.reject(new DesktopError('SHORTCUT_UNAVAILABLE', 'Ctrl+Alt+S is already used.')),
+    );
+    const handlers = createHandlers({ preferences: { view: () => PREFERENCES, update } });
+
+    await expect(
+      handlers.updatePreferences({ shortcut: 'CommandOrControl+Alt+S' }),
+    ).resolves.toEqual({
+      ok: false,
+      error: { code: 'SHORTCUT_UNAVAILABLE', message: 'Ctrl+Alt+S is already used.' },
+    });
+    expect(update).toHaveBeenCalledWith({ shortcut: 'CommandOrControl+Alt+S' });
   });
 });
 

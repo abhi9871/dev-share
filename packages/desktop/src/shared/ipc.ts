@@ -56,9 +56,36 @@ export interface ShareResultView {
   readonly destination: string;
 }
 
+export interface PreferencesView {
+  /** Global shortcut that brings up DevShare, as an Electron accelerator. */
+  readonly shortcut: string;
+  /** False if the shortcut could not be registered, e.g. because another app uses it. */
+  readonly shortcutActive: boolean;
+  /** Whether bringing up DevShare with an empty form loads what was copied. */
+  readonly loadClipboardOnOpen: boolean;
+  /** Whether DevShare starts, in the tray, when the user signs in. */
+  readonly startAtLogin: boolean;
+}
+
+/** Preferences to change; omitted ones stay as they are. */
+export interface PreferencesUpdate {
+  readonly shortcut?: string;
+  readonly loadClipboardOnOpen?: boolean;
+  readonly startAtLogin?: boolean;
+}
+
+export interface LaunchStateView {
+  /** True when DevShare started hidden in the tray (at sign-in) rather than in a window. */
+  readonly startedInTray: boolean;
+}
+
 /** The API the preload script exposes to the renderer as `window.devshare`. */
 export interface DevShareApi {
   getDestinations(): Promise<IpcResult<DestinationsView>>;
+  getLaunchState(): Promise<IpcResult<LaunchStateView>>;
+  getPreferences(): Promise<IpcResult<PreferencesView>>;
+  /** Applies and saves preference changes; resolves with all preferences afterwards. */
+  updatePreferences(update: PreferencesUpdate): Promise<IpcResult<PreferencesView>>;
   /** Lets the user choose files to attach; resolves with none if they cancel. */
   pickFiles(): Promise<IpcResult<readonly AttachmentView[]>>;
   /** Reads the clipboard's text and image; the image is attached for sharing. */
@@ -72,6 +99,9 @@ export interface DevShareApi {
 /** One IPC channel per API method. */
 export const IPC_CHANNELS: { readonly [Method in keyof DevShareApi]: string } = {
   getDestinations: 'devshare:get-destinations',
+  getLaunchState: 'devshare:get-launch-state',
+  getPreferences: 'devshare:get-preferences',
+  updatePreferences: 'devshare:update-preferences',
   pickFiles: 'devshare:pick-files',
   readClipboard: 'devshare:read-clipboard',
   removeAttachment: 'devshare:remove-attachment',

@@ -66,11 +66,21 @@ export function ShareForm({ destinations }: ShareFormProps) {
   );
 
   // Start with whatever was copied, so the usual flow is: copy, open DevShare, press Share.
+  // Not when DevShare started hidden at sign-in: what was copied then is stale by the time
+  // the user brings it up, which loads the clipboard anyway.
   useEffect(() => {
     let active = true;
-    void window.devshare.readClipboard().then((result) => {
-      applyClipboardResult(result, active);
-    });
+    void Promise.all([window.devshare.getLaunchState(), loadsClipboardOnOpen()])
+      .then(([launch, wanted]) =>
+        wanted && !(launch.ok && launch.value.startedInTray) && active
+          ? window.devshare.readClipboard()
+          : undefined,
+      )
+      .then((result) => {
+        if (result) {
+          applyClipboardResult(result, active);
+        }
+      });
     return () => {
       active = false;
     };
@@ -85,16 +95,20 @@ export function ShareForm({ destinations }: ShareFormProps) {
         if (sending) {
           return;
         }
-        if (draftEmpty) {
-          void window.devshare.readClipboard().then((result) => {
-            applyClipboardResult(result, true);
-          });
-        } else {
-          setStatus({
-            kind: 'info',
-            message: 'Your unsent draft was kept. Use Paste from clipboard to add what you copied.',
-          });
-        }
+        void loadsClipboardOnOpen().then(async (wanted) => {
+          if (!wanted) {
+            return;
+          }
+          if (draftEmpty) {
+            applyClipboardResult(await window.devshare.readClipboard(), true);
+          } else {
+            setStatus({
+              kind: 'info',
+              message:
+                'Your unsent draft was kept. Use Paste from clipboard to add what you copied.',
+            });
+          }
+        });
       }),
     [draftEmpty, sending, applyClipboardResult],
   );
@@ -245,4 +259,10 @@ function ShareStatusMessage({ status }: { readonly status: ShareStatus }) {
 
 function isEmpty(clipboard: ClipboardView): boolean {
   return clipboard.text === '' && clipboard.image === undefined;
+}
+
+/** Whether the user wants the clipboard loaded when DevShare opens (the default). */
+async function loadsClipboardOnOpen(): Promise<boolean> {
+  const preferences = await window.devshare.getPreferences();
+  return !preferences.ok || preferences.value.loadClipboardOnOpen;
 }
